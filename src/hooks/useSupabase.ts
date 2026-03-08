@@ -185,6 +185,7 @@ export function useUpdateContribution() {
       status: "paid" | "missed";
       amount?: number;
     }) => {
+      // 1. Update the contribution
       const updates: Record<string, unknown> = { status };
       if (status === "paid") {
         updates.paid_at = new Date().toISOString();
@@ -195,9 +196,35 @@ export function useUpdateContribution() {
         .update(updates)
         .eq("id", contributionId);
       if (error) throw error;
+
+      // 2. Fetch the contribution to get user_id and group_id
+      const { data: contrib } = await supabase
+        .from("contributions")
+        .select("user_id, group_id")
+        .eq("id", contributionId)
+        .single();
+      if (!contrib) return;
+
+      // 3. Adjust trust score
+      const delta = status === "paid" ? 2 : -5;
+      const { data: member } = await supabase
+        .from("group_members")
+        .select("trust_score")
+        .eq("group_id", contrib.group_id)
+        .eq("user_id", contrib.user_id)
+        .single();
+      if (member) {
+        const newScore = Math.max(0, Math.min(100, member.trust_score + delta));
+        await supabase
+          .from("group_members")
+          .update({ trust_score: newScore })
+          .eq("group_id", contrib.group_id)
+          .eq("user_id", contrib.user_id);
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["contributions"] });
+      qc.invalidateQueries({ queryKey: ["group_members"] });
     },
   });
 }
