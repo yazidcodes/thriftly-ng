@@ -1,6 +1,7 @@
 import { PieChart, ShieldCheck, Wallet, ArrowRight, Users, ClipboardList, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -118,14 +119,21 @@ const Landing = () => {
               title: "Instant Balances.",
               text: "Know exactly how much is in the group pot and who is next to collect, all at a glance."
             }].
-            map((f) =>
-            <div key={f.title} className="rounded-2xl border border-border bg-background p-8 text-center shadow-sm transition hover:shadow-md">
+            map((f, i) =>
+            <motion.div
+              key={f.title}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5, delay: i * 0.15 }}
+              className="rounded-2xl border border-border bg-background p-8 text-center shadow-sm transition hover:shadow-md"
+            >
                 <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-accent">
                   <f.icon className="h-7 w-7 text-primary" />
                 </div>
                 <h3 className="mb-2 text-lg font-bold text-foreground">{f.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">{f.text}</p>
-              </div>
+              </motion.div>
             )}
           </div>
         </div>
@@ -143,14 +151,21 @@ const Landing = () => {
             { icon: ClipboardList, title: "Track Contributions", text: "Every member's payment is recorded and visible to the group." },
             { icon: ShieldCheck, title: "Trust Score Insights", text: "See which members are most reliable and spot potential risks early, improving group trust and reducing disputes." },
             { icon: BadgeCheck, title: "Build Trust & History", text: "Members earn a digital trust score, enabling future access to financial services." }].
-            map((step) =>
-            <div key={step.title} className="rounded-2xl border border-border bg-background p-8 text-center shadow-sm transition hover:shadow-md">
+            map((step, i) =>
+            <motion.div
+              key={step.title}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5, delay: i * 0.15 }}
+              className="rounded-2xl border border-border bg-background p-8 text-center shadow-sm transition hover:shadow-md"
+            >
                 <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-accent">
                   <step.icon className="h-7 w-7 text-primary" />
                 </div>
                 <h3 className="mb-2 text-lg font-bold text-foreground">{step.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">{step.text}</p>
-              </div>
+              </motion.div>
             )}
           </div>
           <div className="mt-12 text-center">
