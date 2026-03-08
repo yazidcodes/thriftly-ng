@@ -300,7 +300,7 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
                 <div className="mt-3 space-y-2">
                   <div className="flex items-start gap-1.5 text-xs text-warning font-semibold">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    <span>Pending contributions detected. All members must complete payment before payout.</span>
+                    <span>Pending contributions detected. Mark all members as paid or missed to enable payout.</span>
                   </div>
                   <Button disabled className="w-full gap-2 rounded-xl font-bold shadow-md opacity-50 cursor-not-allowed" size="sm">
                     <CheckCircle2 className="h-4 w-4" />
