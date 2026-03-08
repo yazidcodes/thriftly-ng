@@ -133,15 +133,16 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
 
   const handleCompletePayout = useCallback(() => {
     if (!currentEntry) return;
+    const actualPayoutAmount = paidContributions.reduce((s, c) => s + Number(c.amount), 0);
     completePayout.mutate({
       groupId: group.id,
       recipientId: currentEntry.user_id,
       cycleMonth: currentPayoutMonth,
-      amount: payoutAmount,
+      amount: actualPayoutAmount,
       memberUserIds: members.map((m) => m.user_id),
       nextCycleMonth: currentPayoutMonth + 1,
     });
-  }, [currentEntry, group.id, currentPayoutMonth, payoutAmount, members, completePayout]);
+  }, [currentEntry, group.id, currentPayoutMonth, paidContributions, members, completePayout]);
 
   const handleMarkPaid = useCallback(
     (contributionId: string, amount: number) => {
