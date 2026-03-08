@@ -119,7 +119,7 @@ const Landing = () => {
               title: "Instant Balances.",
               text: "Know exactly how much is in the group pot and who is next to collect, all at a glance."
             }].
-            map((f) =>
+            map((f, i) =>
             <motion.div
               key={f.title}
               initial={{ opacity: 0, y: 30 }}
