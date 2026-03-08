@@ -78,7 +78,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
       variants={stagger}
       initial="hidden"
       animate="show"
-      className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6"
+      className="mx-auto max-w-6xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6"
     >
       {/* Summary Cards */}
       <motion.div variants={fadeUp} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
