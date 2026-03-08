@@ -1,12 +1,14 @@
 import { useState, useMemo } from "react";
-import { Users, TrendingUp, ShieldCheck, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Users, TrendingUp, ShieldCheck, DollarSign, ArrowUpRight, ArrowDownRight, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
 import type { GroupData } from "./CreateGroupDialog";
 import MemberCard from "./MemberCard";
 import MemberSearchBar from "./MemberSearchBar";
-import { type MemberData, createMember, getTrustTier } from "@/lib/members";
+import { type MemberData, createMember, getTrustTier, getTrustLabel } from "@/lib/members";
 
 interface GroupDashboardProps {
   groups: GroupData[];
