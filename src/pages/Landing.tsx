@@ -90,7 +90,9 @@ const Landing = () => {
       <section id="features" className="bg-card py-16 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="mb-4 text-center text-3xl font-extrabold text-foreground sm:text-4xl">
-            Everything you need, nothing you don't.
+            All the tools you need.<br />
+            No more arguments.<br />
+            No more confusions.
           </h2>
           <p className="mx-auto mb-12 max-w-xl text-center text-muted-foreground">Simple tools designed for busy market admins.</p>
           <div className="grid gap-8 sm:grid-cols-3">
