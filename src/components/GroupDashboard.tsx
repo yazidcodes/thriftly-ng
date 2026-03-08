@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Users, TrendingUp, ShieldCheck, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import type { GroupData } from "./CreateGroupDialog";
+import MemberCard from "./MemberCard";
 
 interface GroupDashboardProps {
   groups: GroupData[];
