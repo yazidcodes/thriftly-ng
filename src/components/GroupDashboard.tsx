@@ -68,7 +68,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
   const trustInsights = [
     { name: "Overall Trust", score: avgTrust, trend: avgTrust >= 80 ? "up" as const : "down" as const },
     { name: "Payment Reliability", score: allMembers.length ? Math.round((paidCount / allMembers.length) * 100) : 0, trend: paidCount >= allMembers.length / 2 ? "up" as const : "down" as const },
-    { name: "Active Members", score: Math.round((activeCount / Math.max(allMemberNames.length, 1)) * 100), trend: "up" as const },
+    { name: "Active Members", score: Math.round((activeCount / Math.max(memberNames.length, 1)) * 100), trend: "up" as const },
   ];
 
   return (
