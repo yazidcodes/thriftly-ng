@@ -1,4 +1,4 @@
-import { PieChart, ShieldCheck, BarChart3, ArrowRight, Smartphone } from "lucide-react";
+import { PieChart, ShieldCheck, Wallet, ArrowRight, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -114,7 +114,7 @@ const Landing = () => {
               text: "Every member's balance is securely backed up to the cloud. No more lost notebooks or water damage."
             },
             {
-              icon: BarChart3,
+              icon: Wallet,
               title: "Instant Balances.",
               text: "Know exactly how much is in the group pot and who is next to collect, all at a glance."
             }].
