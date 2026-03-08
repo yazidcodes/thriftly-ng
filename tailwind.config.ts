@@ -58,6 +58,14 @@ export default {
           DEFAULT: "hsl(var(--warning))",
           light: "hsl(var(--warning-light))",
         },
+        "stat-trust": {
+          DEFAULT: "hsl(var(--stat-trust))",
+          light: "hsl(var(--stat-trust-light))",
+        },
+        "stat-members": {
+          DEFAULT: "hsl(var(--stat-members))",
+          light: "hsl(var(--stat-members-light))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

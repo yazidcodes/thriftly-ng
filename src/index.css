@@ -40,6 +40,11 @@
     --success-light: 152 50% 95%;
     --warning: 38 92% 50%;
     --warning-light: 38 100% 95%;
+
+    --stat-trust: 210 70% 50%;
+    --stat-trust-light: 210 70% 95%;
+    --stat-members: 270 60% 50%;
+    --stat-members-light: 270 60% 95%;
   }
 }
 
