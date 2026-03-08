@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Check, XCircle, PlusCircle } from "lucide-react";
+import { Bell, Check, XCircle, PlusCircle, Award } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -22,6 +22,8 @@ interface MemberCardProps {
   isExpanded: boolean;
   onToggle: () => void;
   onUpdate: (updated: MemberData) => void;
+  hasReceivedPayout?: boolean;
+  isUnpaid?: boolean;
 }
 
 const trustColors: Record<string, { badge: string; progress: string }> = {
@@ -45,7 +47,7 @@ const statusStyle: Record<string, string> = {
   missed: "bg-destructive/10 text-destructive",
 };
 
-const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: MemberCardProps) => {
+const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate, hasReceivedPayout, isUnpaid }: MemberCardProps) => {
   const [manualAmount, setManualAmount] = useState("");
   const tier = getTrustTier(member.trustScore);
   const colors = trustColors[tier];
@@ -83,7 +85,7 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
       payments: [payment, ...member.payments].slice(0, 10),
     });
     setManualAmount("");
-    toast.success(`Manual payment of $${amt} recorded for ${member.name}`);
+    toast.success(`Manual payment of ₦${amt.toLocaleString()} recorded for ${member.name}`);
   };
 
   const handleBellClick = (e: React.MouseEvent) => {
@@ -95,7 +97,11 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
 
   return (
     <div
-      className="rounded-2xl border border-border/50 bg-card shadow-sm transition-shadow hover:shadow-md cursor-pointer"
+      className={`rounded-2xl border shadow-sm transition-shadow hover:shadow-md cursor-pointer ${
+        isUnpaid
+          ? "border-warning/50 bg-warning-light/30"
+          : "border-border/50 bg-card"
+      }`}
       onClick={onToggle}
     >
       {/* Collapsed row */}
@@ -106,7 +112,15 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">{member.name}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold text-foreground truncate">{member.name}</p>
+            {hasReceivedPayout && (
+              <Badge variant="outline" className="gap-1 border-primary/30 text-primary text-[10px] font-bold shrink-0">
+                <Award className="h-3 w-3" />
+                Received Payout
+              </Badge>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground">{member.role}</p>
         </div>
         <Badge variant="outline" className={`text-[10px] font-bold ${colors.badge}`}>
@@ -159,7 +173,7 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
                 </span>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Expected</span>
-                  <span className="font-bold text-foreground">${expectedAmount}</span>
+                  <span className="font-bold text-foreground">₦{expectedAmount.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -218,7 +232,7 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
                       <div key={i} className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">{p.date}</span>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">${p.amount}</span>
+                          <span className="font-semibold text-foreground">₦{p.amount.toLocaleString()}</span>
                           <span
                             className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusStyle[p.status]}`}
                           >
@@ -230,7 +244,7 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
                   </div>
                   <p className="text-xs text-muted-foreground pt-1">
                     Total contributed:{" "}
-                    <span className="font-bold text-foreground">${member.totalContributed}</span>
+                    <span className="font-bold text-foreground">₦{member.totalContributed.toLocaleString()}</span>
                   </p>
                 </div>
               )}
