@@ -403,11 +403,20 @@ export function usePayoutHistory(groupId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payout_history")
-        .select("*, profiles:recipient_id(username)")
+        .select("*")
         .eq("group_id", groupId!)
         .order("cycle_month");
       if (error) throw error;
-      return data as PayoutHistoryRow[];
+      const recipientIds = (data ?? []).map((d) => d.recipient_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, username")
+        .in("user_id", recipientIds);
+      const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+      return (data ?? []).map((d) => ({
+        ...d,
+        profiles: profileMap.get(d.recipient_id) ?? null,
+      })) as PayoutHistoryRow[];
     },
     enabled: !!groupId,
   });
