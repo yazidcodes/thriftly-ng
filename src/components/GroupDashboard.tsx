@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Users, TrendingUp, ShieldCheck, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import type { GroupData } from "./CreateGroupDialog";
 import MemberCard from "./MemberCard";
+import { type MemberData, createMember, getTrustTier } from "@/lib/members";
 
 interface GroupDashboardProps {
   groups: GroupData[];
@@ -16,19 +16,6 @@ const scheduleLabels: Record<string, string> = {
   weekly: "Weekly",
   monthly: "Monthly",
 };
-
-const mockTrustScores = [
-  { name: "Overall Trust", score: 82, trend: "up" as const },
-  { name: "Payment Reliability", score: 91, trend: "up" as const },
-  { name: "Engagement", score: 68, trend: "down" as const },
-];
-
-const mockContributions = [
-  { member: "You", amount: 500, status: "paid" },
-  { member: "Alice", amount: 500, status: "paid" },
-  { member: "Bob", amount: 500, status: "pending" },
-  { member: "Carol", amount: 0, status: "overdue" },
-];
 
 const stagger = {
   hidden: {},
@@ -43,7 +30,39 @@ const fadeUp = {
 const GroupDashboard = ({ groups }: GroupDashboardProps) => {
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const latestGroup = groups[groups.length - 1];
-  const allMembers = ["You", ...latestGroup.members];
+  const expectedAmount = latestGroup.contributionAmount ?? 500;
+
+  // Initialize members state from group data
+  const [membersMap, setMembersMap] = useState<Record<string, MemberData>>(() => {
+    const map: Record<string, MemberData> = {};
+    map["You"] = createMember("You", "Admin");
+    latestGroup.members.forEach((name) => {
+      map[name] = createMember(name);
+    });
+    return map;
+  });
+
+  const allMemberNames = useMemo(() => ["You", ...latestGroup.members], [latestGroup.members]);
+  const allMembers = allMemberNames.map((n) => membersMap[n]).filter(Boolean);
+
+  const handleUpdateMember = (updated: MemberData) => {
+    setMembersMap((prev) => ({ ...prev, [updated.name]: updated }));
+  };
+
+  // Computed stats
+  const totalCollected = allMembers.reduce((s, m) => s + m.totalContributed, 0);
+  const avgTrust = allMembers.length
+    ? Math.round(allMembers.reduce((s, m) => s + m.trustScore, 0) / allMembers.length)
+    : 0;
+  const paidCount = allMembers.filter((m) => m.payments.length > 0 && m.payments[0]?.status === "paid").length;
+  const activeCount = allMembers.length;
+
+  // Trust insights
+  const trustInsights = [
+    { name: "Overall Trust", score: avgTrust, trend: avgTrust >= 80 ? "up" as const : "down" as const },
+    { name: "Payment Reliability", score: allMembers.length ? Math.round((paidCount / allMembers.length) * 100) : 0, trend: paidCount >= allMembers.length / 2 ? "up" as const : "down" as const },
+    { name: "Active Members", score: Math.round((activeCount / Math.max(allMemberNames.length, 1)) * 100), trend: "up" as const },
+  ];
 
   return (
     <motion.div
@@ -55,32 +74,24 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
       {/* Summary Cards */}
       <motion.div variants={fadeUp} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {groups.map((group, i) => (
-          <Card
-            key={i}
-            className="relative overflow-hidden rounded-2xl border-border/50 shadow-sm"
-          >
+          <Card key={i} className="relative overflow-hidden rounded-2xl border-border/50 shadow-sm">
             <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
             <CardContent className="p-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Group
-              </p>
-              <p className="mt-1 text-lg font-extrabold text-foreground truncate">
-                {group.name}
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Group</p>
+              <p className="mt-1 text-lg font-extrabold text-foreground truncate">{group.name}</p>
               <div className="mt-3 flex items-center justify-between">
                 <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
                   <Users className="h-3 w-3" />
                   {group.members.length + 1}
                 </span>
                 <span className="text-xs font-medium text-muted-foreground">
-                  {scheduleLabels[group.schedule]}
+                  {scheduleLabels[group.schedule]} · ${expectedAmount}
                 </span>
               </div>
             </CardContent>
           </Card>
         ))}
 
-        {/* Stats cards */}
         <Card className="rounded-2xl border-border/50 shadow-sm">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent">
@@ -88,7 +99,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
             </div>
             <div>
               <p className="text-xs font-semibold text-muted-foreground">Total Collected</p>
-              <p className="text-xl font-extrabold text-foreground">$1,500</p>
+              <p className="text-xl font-extrabold text-foreground">${totalCollected.toLocaleString()}</p>
             </div>
           </CardContent>
         </Card>
@@ -100,7 +111,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
             </div>
             <div>
               <p className="text-xs font-semibold text-muted-foreground">Avg Trust Score</p>
-              <p className="text-xl font-extrabold text-foreground">82%</p>
+              <p className="text-xl font-extrabold text-foreground">{avgTrust}%</p>
             </div>
           </CardContent>
         </Card>
@@ -112,16 +123,16 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
             </div>
             <div>
               <p className="text-xs font-semibold text-muted-foreground">Active Members</p>
-              <p className="text-xl font-extrabold text-foreground">{allMembers.length}</p>
+              <p className="text-xl font-extrabold text-foreground">{activeCount}</p>
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Main grid: Members + Contributions + Trust */}
+      {/* Main grid */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Members */}
-        <motion.div variants={fadeUp}>
+        <motion.div variants={fadeUp} className="lg:col-span-2">
           <Card className="rounded-2xl border-border/50 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
@@ -129,59 +140,18 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
                 Members
               </CardTitle>
             </CardHeader>
-             <CardContent className="space-y-2">
-               {allMembers.map((member, i) => (
-                 <MemberCard
-                   key={member}
-                   name={member}
-                   role={i === 0 ? "Admin" : "Member"}
-                   isExpanded={expandedMember === member}
-                   onToggle={() =>
-                     setExpandedMember((prev) => (prev === member ? null : member))
-                   }
-                 />
-               ))}
-             </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Contributions */}
-        <motion.div variants={fadeUp}>
-          <Card className="rounded-2xl border-border/50 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
-                <DollarSign className="h-4 w-4 text-primary" />
-                Track Contributions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {mockContributions.map((c, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-accent text-xs font-bold text-accent-foreground">
-                        {c.member.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium text-foreground">{c.member}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-foreground">
-                      ${c.amount}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                        c.status === "paid"
-                          ? "bg-accent text-accent-foreground"
-                          : c.status === "pending"
-                            ? "bg-warning/10 text-warning"
-                            : "bg-destructive/10 text-destructive"
-                      }`}
-                    >
-                      {c.status}
-                    </span>
-                  </div>
-                </div>
+            <CardContent className="space-y-2">
+              {allMembers.map((member) => (
+                <MemberCard
+                  key={member.name}
+                  member={member}
+                  expectedAmount={expectedAmount}
+                  isExpanded={expandedMember === member.name}
+                  onToggle={() =>
+                    setExpandedMember((prev) => (prev === member.name ? null : member.name))
+                  }
+                  onUpdate={handleUpdateMember}
+                />
               ))}
             </CardContent>
           </Card>
@@ -197,7 +167,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockTrustScores.map((item, i) => (
+              {trustInsights.map((item, i) => (
                 <div key={i} className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-foreground">{item.name}</span>
@@ -210,10 +180,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
                       )}
                     </span>
                   </div>
-                  <Progress
-                    value={item.score}
-                    className="h-2 rounded-full bg-secondary"
-                  />
+                  <Progress value={item.score} className="h-2 rounded-full bg-secondary" />
                 </div>
               ))}
             </CardContent>

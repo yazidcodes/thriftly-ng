@@ -23,6 +23,7 @@ export interface GroupData {
   name: string;
   schedule: string;
   members: string[];
+  contributionAmount?: number;
 }
 
 interface CreateGroupDialogProps {
@@ -34,6 +35,7 @@ interface CreateGroupDialogProps {
 const CreateGroupDialog = ({ open, onOpenChange, onCreateGroup }: CreateGroupDialogProps) => {
   const [groupName, setGroupName] = useState("");
   const [schedule, setSchedule] = useState("");
+  const [contributionAmount, setContributionAmount] = useState("");
   const [memberInput, setMemberInput] = useState("");
   const [members, setMembers] = useState<string[]>([]);
 
@@ -58,9 +60,15 @@ const CreateGroupDialog = ({ open, onOpenChange, onCreateGroup }: CreateGroupDia
 
   const handleSubmit = () => {
     if (!groupName.trim() || !schedule) return;
-    onCreateGroup({ name: groupName.trim(), schedule, members });
+    onCreateGroup({
+      name: groupName.trim(),
+      schedule,
+      members,
+      contributionAmount: parseFloat(contributionAmount) || 500,
+    });
     setGroupName("");
     setSchedule("");
+    setContributionAmount("");
     setMembers([]);
     setMemberInput("");
     onOpenChange(false);
@@ -113,6 +121,21 @@ const CreateGroupDialog = ({ open, onOpenChange, onCreateGroup }: CreateGroupDia
                 <SelectItem value="monthly">Monthly</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Contribution Amount */}
+          <div className="space-y-2">
+            <Label htmlFor="contribution-amount" className="text-sm font-semibold text-foreground">
+              Contribution Amount ($)
+            </Label>
+            <Input
+              id="contribution-amount"
+              type="number"
+              placeholder="e.g. 500"
+              value={contributionAmount}
+              onChange={(e) => setContributionAmount(e.target.value)}
+              className="rounded-xl border-input bg-secondary/50 placeholder:text-muted-foreground/60 focus-visible:ring-primary"
+            />
           </div>
 
           {/* Members */}
