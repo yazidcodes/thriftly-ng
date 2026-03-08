@@ -170,7 +170,7 @@ const Landing = () => {
           </div>
           <div className="mt-12 text-center">
             <p className="mb-6 text-lg text-muted-foreground">Get started today and bring your cooperative savings online.</p>
-            <Button size="lg" className="gap-2 text-base font-bold shadow-lg">
+            <Button size="lg" className="gap-2 text-base font-bold shadow-lg" onClick={() => navigate("/dashboard")}>
               Get Started <ArrowRight className="h-5 w-5" />
             </Button>
           </div>
