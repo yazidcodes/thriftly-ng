@@ -2,7 +2,7 @@ import { LayoutDashboard, Users, Clock } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const tabs = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/members', label: 'Members', icon: Users },
   { path: '/history', label: 'History', icon: Clock },
 ];
@@ -10,6 +10,9 @@ const tabs = [
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
+  const isAppPage = ['/dashboard', '/members', '/history'].includes(location.pathname);
+  if (!isAppPage) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]">
