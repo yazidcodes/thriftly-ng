@@ -6,6 +6,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
+import MyGroups from "./pages/MyGroups";
+import GroupDetails from "./pages/GroupDetails";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import NotFound from "./pages/NotFound";
