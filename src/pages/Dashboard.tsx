@@ -1,4 +1,4 @@
-import { Bell, HelpCircle, ChevronDown, Plus, PiggyBank } from "lucide-react";
+import { Bell, HelpCircle, ChevronDown, Plus, PiggyBank, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
