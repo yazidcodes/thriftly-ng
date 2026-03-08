@@ -29,8 +29,8 @@ const Landing = () => {
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 md:grid-cols-2 md:py-24">
         <div className="space-y-6">
           <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Ditch the Notebook.<br />
-            <span className="text-primary">Secure Your Cooperative's Future.</span>
+            Leave the Notebook.<br />
+            <span className="text-primary">Start Saving the Smart Way.</span>
           </h1>
           <p className="max-w-lg text-lg leading-relaxed text-muted-foreground">
             The easiest way for market admins in Zaria and beyond to track daily Ajo and Esusu contributions. Zero math errors, total transparency, and powered by voice.
