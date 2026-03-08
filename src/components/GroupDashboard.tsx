@@ -288,22 +288,6 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
         </motion.div>
       )}
 
-      {/* Contribution Verification Warning */}
-      {hasUnpaidWarning && (
-        <motion.div variants={fadeUp}>
-          <Card className="rounded-2xl border-warning/30 bg-warning-light shadow-sm">
-            <CardContent className="flex items-start gap-3 py-4">
-              <AlertTriangle className="h-5 w-5 shrink-0 text-warning mt-0.5" />
-              <div>
-                <p className="text-sm font-bold text-foreground">Pending contributions detected</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {unpaidMembers.map((m) => m.name).join(", ")} {unpaidMembers.length === 1 ? "has" : "have"} not marked contributions as paid this cycle.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
 
       {/* Main grid */}
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
