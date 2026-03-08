@@ -147,7 +147,11 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
                 Members
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-3">
+              <MemberSearchBar
+                existingMembers={memberNames}
+                onAddMember={handleAddMember}
+              />
               {allMembers.map((member) => (
                 <MemberCard
                   key={member.name}
