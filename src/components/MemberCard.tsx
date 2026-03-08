@@ -186,7 +186,7 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
               </div>
 
               {/* Manual Payment */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 [&_button]:min-h-[44px] sm:[&_button]:min-h-0">
                 <Input
                   type="number"
                   placeholder="Manual amount"
