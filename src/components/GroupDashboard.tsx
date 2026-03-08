@@ -84,7 +84,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
       <motion.div variants={fadeUp} className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
         {/* Group Card */}
         <Card className="group relative overflow-hidden rounded-2xl border-border/50 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
-          <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
+          <div className="absolute inset-x-0 top-0 h-1 bg-border" />
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent">
