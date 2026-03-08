@@ -210,6 +210,15 @@ const Dashboard = () => {
               Create Your First Group
             </Button>
 
+            <Button
+              variant="outline"
+              size="lg"
+              className="mt-3 gap-2 text-base font-bold"
+            >
+              <Users className="h-5 w-5" />
+              Check Your Groups
+            </Button>
+
             <Card className="mx-auto mt-10 w-fit border-border/50 bg-card/80 px-6 py-5 shadow-sm backdrop-blur-sm">
               <ul className="space-y-3 text-left text-sm text-muted-foreground">
                 {[
