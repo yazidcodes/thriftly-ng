@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import type { GroupData } from "./CreateGroupDialog";
 import MemberCard from "./MemberCard";
+import MemberSearchBar from "./MemberSearchBar";
 import { type MemberData, createMember, getTrustTier } from "@/lib/members";
 
 interface GroupDashboardProps {
