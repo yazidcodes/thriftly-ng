@@ -104,7 +104,7 @@ const Landing = () => {
           <div className="grid gap-8 sm:grid-cols-3">
             {[
             {
-              icon: BarChart3,
+              icon: PieChart,
               title: "Contribution Insights.",
               text: "Visualize contributions and payouts instantly. Track who has paid, upcoming collections, and group progress at a glance."
             },
