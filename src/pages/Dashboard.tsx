@@ -100,29 +100,14 @@ const Dashboard = () => {
 
       {/* Empty State */}
       <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4">
-        {/* Floating geometric shapes */}
-        {floatingShapes.map((shape, i) => (
-          <motion.div
-            key={i}
-            className="pointer-events-none absolute text-primary/[0.06]"
-            style={{ left: shape.x, top: shape.y }}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{
-              opacity: 1,
-              scale: 1,
-              y: [0, -12, 0],
-              rotate: [0, shape.type === "square" ? 15 : 8, 0],
-            }}
-            transition={{
-              opacity: { duration: 1, delay: shape.delay * 0.2 },
-              scale: { duration: 1, delay: shape.delay * 0.2 },
-              y: { duration: 6 + shape.delay, repeat: Infinity, ease: "easeInOut" },
-              rotate: { duration: 8 + shape.delay, repeat: Infinity, ease: "easeInOut" },
-            }}
-          >
-            <ShapeSvg type={shape.type} size={shape.size} />
-          </motion.div>
-        ))}
+        {/* Dot grid background */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: "radial-gradient(circle, hsl(var(--primary) / 0.07) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
