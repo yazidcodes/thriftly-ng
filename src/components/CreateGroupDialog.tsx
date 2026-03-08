@@ -60,9 +60,15 @@ const CreateGroupDialog = ({ open, onOpenChange, onCreateGroup }: CreateGroupDia
 
   const handleSubmit = () => {
     if (!groupName.trim() || !schedule) return;
-    onCreateGroup({ name: groupName.trim(), schedule, members });
+    onCreateGroup({
+      name: groupName.trim(),
+      schedule,
+      members,
+      contributionAmount: parseFloat(contributionAmount) || 500,
+    });
     setGroupName("");
     setSchedule("");
+    setContributionAmount("");
     setMembers([]);
     setMemberInput("");
     onOpenChange(false);
