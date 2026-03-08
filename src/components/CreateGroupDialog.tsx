@@ -35,6 +35,7 @@ interface CreateGroupDialogProps {
 const CreateGroupDialog = ({ open, onOpenChange, onCreateGroup }: CreateGroupDialogProps) => {
   const [groupName, setGroupName] = useState("");
   const [schedule, setSchedule] = useState("");
+  const [contributionAmount, setContributionAmount] = useState("");
   const [memberInput, setMemberInput] = useState("");
   const [members, setMembers] = useState<string[]>([]);
 
