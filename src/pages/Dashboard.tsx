@@ -86,6 +86,25 @@ const Dashboard = () => {
             <Plus className="h-5 w-5" />
             Create Your First Group
           </Button>
+
+          <ul className="mt-10 space-y-3 text-left text-sm text-muted-foreground">
+            {[
+              "Create a group to start tracking contributions.",
+              "Add members to your cooperative circle.",
+              "Monitor payments and build trust scores.",
+            ].map((tip, i) => (
+              <motion.li
+                key={i}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6 + i * 0.15 }}
+                className="flex items-start gap-2"
+              >
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
+                {tip}
+              </motion.li>
+            ))}
+          </ul>
         </motion.div>
       </main>
     </div>
