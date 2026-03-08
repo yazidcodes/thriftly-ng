@@ -37,7 +37,7 @@ const Landing = () => {
             The easiest way for market administrators in Zaria and beyond to track daily Ajo and Esusu contributions. No calculation errors, just clear and transparent savings.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
-            <Button size="lg" className="gap-2 text-base font-bold shadow-lg" onClick={() => navigate("/dashboard")}>
+            <Button size="lg" className="gap-2 text-base font-bold shadow-lg" onClick={() => navigate("/signup")}>
               Open Free Ledger <ArrowRight className="h-5 w-5" />
             </Button>
             <Button size="lg" variant="outline" className="text-base font-bold" onClick={() => scrollTo("how-it-works")}>
