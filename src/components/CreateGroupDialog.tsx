@@ -23,6 +23,7 @@ export interface GroupData {
   name: string;
   schedule: string;
   members: string[];
+  contributionAmount?: number;
 }
 
 interface CreateGroupDialogProps {
