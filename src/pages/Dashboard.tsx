@@ -87,7 +87,7 @@ const Dashboard = () => {
             Create Your First Group
           </Button>
 
-          <ul className="mt-10 space-y-3 text-left text-sm text-muted-foreground">
+          <ul className="mx-auto mt-10 w-fit space-y-3 text-left text-sm text-muted-foreground">
             {[
               "Create a group to start tracking contributions.",
               "Add members to your cooperative circle.",
