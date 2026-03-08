@@ -38,7 +38,6 @@ const CreateGroupDialog = ({ open, onOpenChange, onCreateGroup }: CreateGroupDia
       contributionAmount: parseFloat(contributionAmount) || 500,
       cycleLength: parseInt(cycleLength) || 4,
       payoutDay: payoutDay ? parseInt(payoutDay) : undefined,
-      members: [],
     });
     setGroupName("");
     setContributionAmount("");
