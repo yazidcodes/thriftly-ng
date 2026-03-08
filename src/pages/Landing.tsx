@@ -89,15 +89,15 @@ const Landing = () => {
       {/* Features */}
       <section id="features" className="bg-card py-16 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="mb-4 text-center">
+          <div className="mb-4 space-y-1 text-center">
             <h2 className="text-3xl font-extrabold text-foreground sm:text-4xl">
               All the tools you need.
             </h2>
-            <p className="mt-2 text-xl font-semibold text-muted-foreground sm:text-2xl">
-              No more arguments.
+            <p className="text-3xl font-extrabold text-foreground sm:text-4xl">
+              No more <span className="text-primary">arguments</span>.
             </p>
-            <p className="text-xl font-semibold text-muted-foreground sm:text-2xl">
-              No more confusions.
+            <p className="text-3xl font-extrabold text-foreground sm:text-4xl">
+              No more <span className="text-primary">confusions</span>.
             </p>
           </div>
           <p className="mx-auto mb-12 max-w-xl text-center text-muted-foreground">Simple tools designed for busy market admins.</p>
