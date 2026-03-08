@@ -198,7 +198,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
       </motion.div>
 
       {/* Main grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Members */}
         <motion.div variants={fadeUp} className="lg:col-span-2">
           <Card className="rounded-2xl border-border/50 shadow-sm">

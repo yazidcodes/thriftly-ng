@@ -213,7 +213,7 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Payment History
                   </span>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 overflow-x-auto">
                     {member.payments.slice(0, 5).map((p, i) => (
                       <div key={i} className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">{p.date}</span>
