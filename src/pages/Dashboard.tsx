@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Bell, HelpCircle, ChevronDown, Plus, PiggyBank, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +11,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
+import CreateGroupDialog, { type GroupData } from "@/components/CreateGroupDialog";
+import GroupDashboard from "@/components/GroupDashboard";
 
 const floatingShapes = [
   { type: "circle", size: 120, x: "10%", y: "15%", delay: 0 },
@@ -53,6 +56,15 @@ const ShapeSvg = ({ type, size }: { type: string; size: number }) => {
 };
 
 const Dashboard = () => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [groups, setGroups] = useState<GroupData[]>([]);
+
+  const hasGroups = groups.length > 0;
+
+  const handleCreateGroup = (group: GroupData) => {
+    setGroups((prev) => [...prev, group]);
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Top Bar */}
@@ -63,6 +75,17 @@ const Dashboard = () => {
           </span>
 
           <div className="flex items-center gap-1 sm:gap-3">
+            {hasGroups && (
+              <Button
+                size="sm"
+                className="gap-1.5 rounded-xl font-bold shadow-sm"
+                onClick={() => setDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Create Group</span>
+              </Button>
+            )}
+
             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
               <HelpCircle className="h-5 w-5" />
               <span className="sr-only">Help</span>
@@ -101,82 +124,99 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {/* Empty State */}
-      <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4">
-        {/* Floating geometric shapes */}
-        {floatingShapes.map((shape, i) => (
+      {/* Content */}
+      {hasGroups ? (
+        <main className="flex-1">
+          <GroupDashboard groups={groups} />
+        </main>
+      ) : (
+        <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4">
+          {/* Floating geometric shapes */}
+          {floatingShapes.map((shape, i) => (
+            <motion.div
+              key={i}
+              className="pointer-events-none absolute text-primary/[0.06]"
+              style={{ left: shape.x, top: shape.y }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                y: [0, -12, 0],
+                rotate: [0, shape.type === "square" ? 15 : 8, 0],
+              }}
+              transition={{
+                opacity: { duration: 1, delay: shape.delay * 0.2 },
+                scale: { duration: 1, delay: shape.delay * 0.2 },
+                y: { duration: 6 + shape.delay, repeat: Infinity, ease: "easeInOut" },
+                rotate: { duration: 8 + shape.delay, repeat: Infinity, ease: "easeInOut" },
+              }}
+            >
+              <ShapeSvg type={shape.type} size={shape.size} />
+            </motion.div>
+          ))}
+
           <motion.div
-            key={i}
-            className="pointer-events-none absolute text-primary/[0.06]"
-            style={{ left: shape.x, top: shape.y }}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{
-              opacity: 1,
-              scale: 1,
-              y: [0, -12, 0],
-              rotate: [0, shape.type === "square" ? 15 : 8, 0],
-            }}
-            transition={{
-              opacity: { duration: 1, delay: shape.delay * 0.2 },
-              scale: { duration: 1, delay: shape.delay * 0.2 },
-              y: { duration: 6 + shape.delay, repeat: Infinity, ease: "easeInOut" },
-              rotate: { duration: 8 + shape.delay, repeat: Infinity, ease: "easeInOut" },
-            }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="relative z-10 mx-auto max-w-md text-center"
           >
-            <ShapeSvg type={shape.type} size={shape.size} />
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-accent shadow-md">
+              <PiggyBank className="h-10 w-10 text-primary" />
+            </div>
+
+            <h1 className="mb-2 text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+              Welcome to Thriftly!
+            </h1>
+            <p className="mb-8 text-base leading-relaxed text-muted-foreground">
+              Create your first cooperative group to start tracking contributions
+              and building trust.
+            </p>
+
+            <Button
+              size="lg"
+              className="gap-2 text-base font-bold shadow-lg hover:shadow-xl transition-shadow"
+              onClick={() => setDialogOpen(true)}
+            >
+              <Plus className="h-5 w-5" />
+              Create Your First Group
+            </Button>
+
+            <Button size="lg" variant="outline" className="mt-3 gap-2 text-base font-bold shadow-lg hover:shadow-xl transition-shadow">
+              <Users className="h-5 w-5" />
+              Check Your Groups
+            </Button>
+
+            <Card className="mx-auto mt-10 w-fit border-border/50 bg-card/80 px-6 py-5 shadow-sm backdrop-blur-sm">
+              <ul className="space-y-3 text-left text-sm text-muted-foreground">
+                {[
+                  "Create a group to start tracking contributions.",
+                  "Add members to your cooperative circle.",
+                  "Monitor payments and build trust scores.",
+                ].map((tip, i) => (
+                  <motion.li
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 + i * 0.15 }}
+                    className="flex items-start gap-2"
+                  >
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
+                    {tip}
+                  </motion.li>
+                ))}
+              </ul>
+            </Card>
           </motion.div>
-        ))}
+        </main>
+      )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="relative z-10 mx-auto max-w-md text-center"
-        >
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-accent shadow-md">
-            <PiggyBank className="h-10 w-10 text-primary" />
-          </div>
-
-          <h1 className="mb-2 text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
-            Welcome to Thriftly!
-          </h1>
-          <p className="mb-8 text-base leading-relaxed text-muted-foreground">
-            Create your first cooperative group to start tracking contributions
-            and building trust.
-          </p>
-
-          <Button size="lg" className="gap-2 text-base font-bold shadow-lg hover:shadow-xl transition-shadow">
-            <Plus className="h-5 w-5" />
-            Create Your First Group
-          </Button>
-
-          <Button size="lg" variant="outline" className="mt-3 gap-2 text-base font-bold shadow-lg hover:shadow-xl transition-shadow">
-            <Users className="h-5 w-5" />
-            Check Your Groups
-          </Button>
-
-          <Card className="mx-auto mt-10 w-fit border-border/50 bg-card/80 px-6 py-5 shadow-sm backdrop-blur-sm">
-            <ul className="space-y-3 text-left text-sm text-muted-foreground">
-              {[
-                "Create a group to start tracking contributions.",
-                "Add members to your cooperative circle.",
-                "Monitor payments and build trust scores.",
-              ].map((tip, i) => (
-                <motion.li
-                  key={i}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.6 + i * 0.15 }}
-                  className="flex items-start gap-2"
-                >
-                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
-                  {tip}
-                </motion.li>
-              ))}
-            </ul>
-          </Card>
-        </motion.div>
-      </main>
+      {/* Dialog */}
+      <CreateGroupDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onCreateGroup={handleCreateGroup}
+      />
     </div>
   );
 };
