@@ -33,7 +33,7 @@ const Landing = () => {
             <span className="text-primary">Start Saving the Smart Way.</span>
           </h1>
           <p className="max-w-lg text-lg leading-relaxed text-muted-foreground">
-            The easiest way for market admins in Zaria and beyond to track daily Ajo and Esusu contributions. Zero math errors, total transparency, and powered by voice.
+            The easiest way for market administrators in Zaria and beyond to track daily Ajo and Esusu contributions. No calculation errors, just clear and transparent savings.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Button size="lg" className="gap-2 text-base font-bold shadow-lg">
