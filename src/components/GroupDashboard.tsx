@@ -1,24 +1,24 @@
-import { useState, useMemo } from "react";
-import { Users, TrendingUp, ShieldCheck, DollarSign, ArrowUpRight, ArrowDownRight, Calendar } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import {
+  Users, TrendingUp, ShieldCheck, DollarSign, Calendar, Shuffle,
+  AlertTriangle, CheckCircle2, Timer,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import type { GroupData } from "./CreateGroupDialog";
 import MemberCard from "./MemberCard";
 import MemberSearchBar from "./MemberSearchBar";
+import PayoutTimeline, { type PayoutEntry } from "./PayoutTimeline";
 import { type MemberData, createMember, getTrustTier, getTrustLabel } from "@/lib/members";
 
 interface GroupDashboardProps {
   groups: GroupData[];
 }
-
-const scheduleLabels: Record<string, string> = {
-  daily: "Daily",
-  weekly: "Weekly",
-  monthly: "Monthly",
-};
 
 const stagger = {
   hidden: {},
@@ -30,12 +30,22 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
+/** Fisher-Yates shuffle */
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 const GroupDashboard = ({ groups }: GroupDashboardProps) => {
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const latestGroup = groups[groups.length - 1];
   const expectedAmount = latestGroup.contributionAmount ?? 500;
+  const cycleLength = latestGroup.cycleLength ?? 4;
 
-  // Initialize members state from group data
   const [membersMap, setMembersMap] = useState<Record<string, MemberData>>(() => {
     const map: Record<string, MemberData> = {};
     map["You"] = createMember("You", "Admin");
@@ -47,6 +57,10 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
 
   const [memberNames, setMemberNames] = useState<string[]>(() => ["You", ...latestGroup.members]);
   const allMembers = memberNames.map((n) => membersMap[n]).filter(Boolean);
+
+  // Payout state
+  const [payoutSchedule, setPayoutSchedule] = useState<PayoutEntry[] | null>(null);
+  const [currentPayoutMonth, setCurrentPayoutMonth] = useState(1);
 
   const handleUpdateMember = (updated: MemberData) => {
     setMembersMap((prev) => ({ ...prev, [updated.name]: updated }));
@@ -63,15 +77,42 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
   const avgTrust = allMembers.length
     ? Math.round(allMembers.reduce((s, m) => s + m.trustScore, 0) / allMembers.length)
     : 0;
-  const paidCount = allMembers.filter((m) => m.payments.length > 0 && m.payments[0]?.status === "paid").length;
   const activeCount = memberNames.length;
+  const canGeneratePayout = memberNames.length >= 2 && !payoutSchedule;
 
-  // Trust insights
-  const trustInsights = [
-    { name: "Overall Trust", score: avgTrust, trend: avgTrust >= 80 ? "up" as const : "down" as const },
-    { name: "Payment Reliability", score: allMembers.length ? Math.round((paidCount / allMembers.length) * 100) : 0, trend: paidCount >= allMembers.length / 2 ? "up" as const : "down" as const },
-    { name: "Active Members", score: Math.round((activeCount / Math.max(memberNames.length, 1)) * 100), trend: "up" as const },
-  ];
+  // Payout amount = contribution × number of members
+  const payoutAmount = expectedAmount * memberNames.length;
+
+  // Generate payout schedule
+  const handleGeneratePayout = useCallback(() => {
+    const shuffled = shuffle(memberNames);
+    const entries: PayoutEntry[] = shuffled.slice(0, cycleLength).map((name, i) => ({
+      month: i + 1,
+      memberName: name,
+      status: i === 0 ? "current" as const : "upcoming" as const,
+    }));
+    setPayoutSchedule(entries);
+    setCurrentPayoutMonth(1);
+    toast.success("Payout schedule successfully generated and locked.", {
+      description: `${entries.length}-month rotation created for ${latestGroup.name}.`,
+    });
+  }, [memberNames, cycleLength, latestGroup.name]);
+
+  // Current payout recipient
+  const currentRecipient = payoutSchedule?.find((e) => e.status === "current");
+
+  // Check for unpaid members
+  const unpaidMembers = allMembers.filter(
+    (m) => m.payments.length === 0 || m.payments[0]?.status !== "paid"
+  );
+  const hasUnpaidWarning = payoutSchedule && unpaidMembers.length > 0;
+
+  // Days until payout (mock)
+  const payoutDay = latestGroup.payoutDay ?? 15;
+  const now = new Date();
+  const nextPayoutDate = new Date(now.getFullYear(), now.getMonth(), payoutDay);
+  if (nextPayoutDate <= now) nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1);
+  const daysUntilPayout = Math.ceil((nextPayoutDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
   return (
     <motion.div
@@ -95,7 +136,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
             <p className="text-xl font-extrabold text-foreground truncate">{latestGroup.name}</p>
             <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
               <Calendar className="h-3 w-3" />
-              <span>{scheduleLabels[latestGroup.schedule]} cycle · ${expectedAmount}/round</span>
+              <span>{cycleLength}-month cycle · ₦{expectedAmount.toLocaleString()}/mo</span>
             </div>
             <div className="mt-3 flex items-center gap-1.5">
               <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
@@ -116,7 +157,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
               </div>
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Collected</span>
             </div>
-            <p className="text-2xl font-extrabold text-foreground">${totalCollected.toLocaleString()}</p>
+            <p className="text-2xl font-extrabold text-foreground">₦{totalCollected.toLocaleString()}</p>
             <div className="mt-3 space-y-1">
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                 <span>Collection progress</span>
@@ -168,34 +209,107 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
           );
         })()}
 
-        {/* Active Members */}
-        <Card className="group relative overflow-hidden rounded-2xl border-border/50 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
-          <div className="absolute inset-x-0 top-0 h-1 bg-stat-members" />
-          <CardContent className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stat-members-light">
-                <Users className="h-4.5 w-4.5 text-stat-members" />
+        {/* Next Payout / Active Members */}
+        {payoutSchedule && currentRecipient ? (
+          <Card className="group relative overflow-hidden rounded-2xl border-border/50 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+            <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent">
+                  <Timer className="h-4.5 w-4.5 text-primary" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Next Payout</span>
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Active Members</span>
-            </div>
-            <p className="text-2xl font-extrabold text-foreground">{activeCount}</p>
-            <div className="mt-3 flex items-center -space-x-2">
-              {allMembers.slice(0, 5).map((m) => (
-                <Avatar key={m.name} className="h-7 w-7 border-2 border-card">
-                  <AvatarFallback className="bg-accent text-[9px] font-bold text-accent-foreground">
-                    {m.name.slice(0, 2).toUpperCase()}
+              <div className="flex items-center gap-3">
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback className="bg-accent text-xs font-bold text-accent-foreground">
+                    {currentRecipient.memberName.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-              ))}
-              {allMembers.length > 5 && (
-                <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-muted text-[9px] font-bold text-muted-foreground">
-                  +{allMembers.length - 5}
+                <div className="min-w-0">
+                  <p className="text-sm font-extrabold text-foreground truncate">{currentRecipient.memberName}</p>
+                  <p className="text-lg font-extrabold text-primary">₦{payoutAmount.toLocaleString()}</p>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Timer className="h-3 w-3" />
+                <span className="font-semibold">Payout in {daysUntilPayout} days</span>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="group relative overflow-hidden rounded-2xl border-border/50 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+            <div className="absolute inset-x-0 top-0 h-1 bg-stat-members" />
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stat-members-light">
+                  <Users className="h-4.5 w-4.5 text-stat-members" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Active Members</span>
+              </div>
+              <p className="text-2xl font-extrabold text-foreground">{activeCount}</p>
+              <div className="mt-3 flex items-center -space-x-2">
+                {allMembers.slice(0, 5).map((m) => (
+                  <Avatar key={m.name} className="h-7 w-7 border-2 border-card">
+                    <AvatarFallback className="bg-accent text-[9px] font-bold text-accent-foreground">
+                      {m.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+                {allMembers.length > 5 && (
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-muted text-[9px] font-bold text-muted-foreground">
+                    +{allMembers.length - 5}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </motion.div>
+
+      {/* Implement Payout Schedule Button */}
+      {canGeneratePayout && (
+        <motion.div variants={fadeUp}>
+          <Card className="rounded-2xl border-primary/20 bg-accent/30 shadow-sm">
+            <CardContent className="flex flex-col items-center gap-3 py-6 sm:flex-row sm:justify-between sm:py-5">
+              <div className="text-center sm:text-left">
+                <h3 className="text-base font-extrabold text-foreground flex items-center gap-2 justify-center sm:justify-start">
+                  <Shuffle className="h-4.5 w-4.5 text-primary" />
+                  Ready to Generate Payouts
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground max-w-md">
+                  Generate a fair payout order for all {memberNames.length} members in this group.
+                </p>
+              </div>
+              <Button
+                size="lg"
+                onClick={handleGeneratePayout}
+                className="gap-2 rounded-xl font-bold text-base shadow-md hover:shadow-lg transition-shadow min-h-[48px]"
+              >
+                <Shuffle className="h-5 w-5" />
+                Implement Payout Schedule
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Contribution Verification Warning */}
+      {hasUnpaidWarning && (
+        <motion.div variants={fadeUp}>
+          <Card className="rounded-2xl border-warning/30 bg-warning-light shadow-sm">
+            <CardContent className="flex items-start gap-3 py-4">
+              <AlertTriangle className="h-5 w-5 shrink-0 text-warning mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-foreground">Pending contributions detected</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {unpaidMembers.map((m) => m.name).join(", ")} {unpaidMembers.length === 1 ? "has" : "have"} not marked contributions as paid this cycle.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Main grid */}
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
@@ -229,34 +343,45 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
           </Card>
         </motion.div>
 
-        {/* Trust Score Insights */}
+        {/* Payout Timeline (replaces Trust Score Insights) */}
         <motion.div variants={fadeUp}>
-          <Card className="rounded-2xl border-border/50 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
-                <ShieldCheck className="h-4 w-4 text-primary" />
-                Trust Score Insights
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {trustInsights.map((item, i) => (
-                <div key={i} className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">{item.name}</span>
-                    <span className="flex items-center gap-1 text-sm font-bold text-foreground">
-                      {item.score}%
-                      {item.trend === "up" ? (
-                        <ArrowUpRight className="h-3.5 w-3.5 text-primary" />
-                      ) : (
-                        <ArrowDownRight className="h-3.5 w-3.5 text-destructive" />
-                      )}
-                    </span>
+          {payoutSchedule ? (
+            <Card className="rounded-2xl border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  Payout Timeline
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Payout schedule locked for this cycle.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <PayoutTimeline entries={payoutSchedule} />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="rounded-2xl border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+                  <Shuffle className="h-4 w-4 text-primary" />
+                  Payout Schedule
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center gap-3 py-6 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent">
+                    <Shuffle className="h-6 w-6 text-primary" />
                   </div>
-                  <Progress value={item.score} className="h-2 rounded-full bg-secondary" />
+                  <p className="text-sm text-muted-foreground max-w-[200px]">
+                    {memberNames.length < 2
+                      ? "Add at least 2 members to generate a payout schedule."
+                      : "Click the button above to generate and lock a payout order."}
+                  </p>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </motion.div>
       </div>
     </motion.div>
