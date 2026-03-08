@@ -165,6 +165,13 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
     [addMember]
   );
 
+  const handleUpdateDebt = useCallback(
+    (userId: string, newDebt: number) => {
+      updateDebt.mutate({ groupId: group.id, userId, newDebtBalance: newDebt });
+    },
+    [updateDebt, group.id]
+  );
+
   return (
     <motion.div
       variants={stagger}
