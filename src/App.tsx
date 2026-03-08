@@ -32,6 +32,22 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/my-groups"
+              element={
+                <ProtectedRoute>
+                  <MyGroups />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/group/:groupId"
+              element={
+                <ProtectedRoute>
+                  <GroupDetails />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
