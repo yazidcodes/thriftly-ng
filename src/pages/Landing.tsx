@@ -114,7 +114,7 @@ const Landing = () => {
               text: "Every member's balance is securely backed up to the cloud. No more lost notebooks or water damage."
             },
             {
-              icon: BarChart3,
+              icon: Wallet,
               title: "Instant Balances.",
               text: "Know exactly how much is in the group pot and who is next to collect, all at a glance."
             }].
