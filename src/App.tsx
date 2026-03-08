@@ -6,6 +6,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
+import MyGroups from "./pages/MyGroups";
+import GroupDetails from "./pages/GroupDetails";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import NotFound from "./pages/NotFound";
@@ -27,6 +29,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-groups"
+              element={
+                <ProtectedRoute>
+                  <MyGroups />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/group/:groupId"
+              element={
+                <ProtectedRoute>
+                  <GroupDetails />
                 </ProtectedRoute>
               }
             />

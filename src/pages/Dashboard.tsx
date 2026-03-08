@@ -214,6 +214,7 @@ const Dashboard = () => {
               variant="outline"
               size="lg"
               className="mt-3 gap-2 text-base font-bold"
+              onClick={() => navigate("/my-groups")}
             >
               <Users className="h-5 w-5" />
               Check Your Groups
