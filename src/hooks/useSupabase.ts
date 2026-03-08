@@ -186,57 +186,48 @@ export function useUpdateContribution() {
       status: "paid" | "missed";
       amount?: number;
     }) => {
-      // 1. Update the contribution
-      const updates: Record<string, unknown> = { status };
-      if (status === "paid") {
-        updates.paid_at = new Date().toISOString();
-        if (amount !== undefined) updates.amount = amount;
-      }
-      const { error } = await supabase
-        .from("contributions")
-        .update(updates)
-        .eq("id", contributionId);
+      const { error } = await supabase.rpc("update_contribution_status", {
+        p_contribution_id: contributionId,
+        p_status: status,
+        p_amount: amount ?? 0,
+      });
       if (error) throw error;
+    },
+    onMutate: async ({ contributionId, status, amount }) => {
+      // Cancel outgoing refetches
+      await qc.cancelQueries({ queryKey: ["contributions"] });
+      await qc.cancelQueries({ queryKey: ["group_members"] });
 
-      // 2. Fetch the contribution to get user_id and group_id
-      const { data: contrib } = await supabase
-        .from("contributions")
-        .select("user_id, group_id")
-        .eq("id", contributionId)
-        .single();
-      if (!contrib) return;
+      // Snapshot previous values
+      const prevContributions = qc.getQueriesData({ queryKey: ["contributions"] });
+      const prevMembers = qc.getQueriesData({ queryKey: ["group_members"] });
 
-      // 3. Adjust trust score and debt balance
-      const delta = status === "paid" ? 2 : -5;
-      const { data: member } = await supabase
-        .from("group_members")
-        .select("trust_score, debt_balance")
-        .eq("group_id", contrib.group_id)
-        .eq("user_id", contrib.user_id)
-        .single();
-      if (member) {
-        const newScore = Math.max(0, Math.min(100, member.trust_score + delta));
-        const updates: Record<string, unknown> = { trust_score: newScore };
-        // If missed, add expected contribution to debt
-        if (status === "missed") {
-          // Fetch group to get expected amount
-          const { data: group } = await supabase
-            .from("groups")
-            .select("monthly_contribution")
-            .eq("id", contrib.group_id)
-            .single();
-          if (group) {
-            updates.debt_balance = (member.debt_balance || 0) + Number(group.monthly_contribution);
-          }
+      // Optimistically update contributions cache
+      qc.setQueriesData({ queryKey: ["contributions"] }, (old: ContributionRow[] | undefined) => {
+        if (!old) return old;
+        return old.map((c) =>
+          c.id === contributionId
+            ? { ...c, status, amount: status === "paid" ? (amount ?? c.amount) : 0, paid_at: status === "paid" ? new Date().toISOString() : null }
+            : c
+        );
+      });
+
+      return { prevContributions, prevMembers };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback on error
+      if (context?.prevContributions) {
+        for (const [key, data] of context.prevContributions) {
+          qc.setQueryData(key, data);
         }
-        await supabase
-          .from("group_members")
-          .update(updates)
-          .eq("group_id", contrib.group_id)
-          .eq("user_id", contrib.user_id);
+      }
+      if (context?.prevMembers) {
+        for (const [key, data] of context.prevMembers) {
+          qc.setQueryData(key, data);
+        }
       }
     },
-    onSuccess: () => {
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["contributions"] });
       qc.invalidateQueries({ queryKey: ["group_members"] });
     },
@@ -363,69 +354,22 @@ export function useCompletePayout() {
       recipientId,
       cycleMonth,
       amount,
-      memberUserIds,
       nextCycleMonth,
     }: {
       groupId: string;
       recipientId: string;
       cycleMonth: number;
       amount: number;
-      memberUserIds: string[];
       nextCycleMonth: number;
     }) => {
-      // 1. Record payout history (amount = sum of paid contributions)
-      const { error: histErr } = await supabase.from("payout_history").insert({
-        group_id: groupId,
-        recipient_id: recipientId,
-        cycle_month: cycleMonth,
-        amount,
+      const { error } = await supabase.rpc("complete_payout", {
+        p_group_id: groupId,
+        p_recipient_id: recipientId,
+        p_cycle_month: cycleMonth,
+        p_amount: amount,
+        p_next_cycle_month: nextCycleMonth,
       });
-      if (histErr) throw histErr;
-
-      // 2. Mark current schedule entry as completed
-      const { error: completeErr } = await supabase
-        .from("payout_schedule")
-        .update({ status: "completed" })
-        .eq("group_id", groupId)
-        .eq("payout_month", cycleMonth);
-      if (completeErr) throw completeErr;
-
-      // 3. Move next to current
-      const { error: nextErr } = await supabase
-        .from("payout_schedule")
-        .update({ status: "current" })
-        .eq("group_id", groupId)
-        .eq("payout_month", nextCycleMonth);
-      if (nextErr) throw nextErr;
-
-      // 4. Create contributions for next cycle
-      const contribRows = memberUserIds.map((uid) => ({
-        group_id: groupId,
-        user_id: uid,
-        cycle_month: nextCycleMonth,
-        amount: 0,
-        status: "pending" as const,
-      }));
-      await supabase.from("contributions").insert(contribRows);
-
-      // 5. Update member trust scores (bump for paid)
-      for (const uid of memberUserIds) {
-        await supabase.rpc("is_group_member", { _user_id: uid, _group_id: groupId });
-        // Simple trust bump via group_members
-        const { data: member } = await supabase
-          .from("group_members")
-          .select("trust_score")
-          .eq("group_id", groupId)
-          .eq("user_id", uid)
-          .single();
-        if (member) {
-          await supabase
-            .from("group_members")
-            .update({ trust_score: Math.min(100, member.trust_score + 2) })
-            .eq("group_id", groupId)
-            .eq("user_id", uid);
-        }
-      }
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payout_schedule"] });

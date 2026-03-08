@@ -139,7 +139,6 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
       recipientId: currentEntry.user_id,
       cycleMonth: currentPayoutMonth,
       amount: actualPayoutAmount,
-      memberUserIds: members.map((m) => m.user_id),
       nextCycleMonth: currentPayoutMonth + 1,
     });
   }, [currentEntry, group.id, currentPayoutMonth, paidContributions, members, completePayout]);

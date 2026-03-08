@@ -219,6 +219,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      complete_payout: {
+        Args: {
+          p_amount: number
+          p_cycle_month: number
+          p_group_id: string
+          p_next_cycle_month: number
+          p_recipient_id: string
+        }
+        Returns: undefined
+      }
       is_group_admin: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
@@ -226,6 +236,10 @@ export type Database = {
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
+      }
+      update_contribution_status: {
+        Args: { p_amount?: number; p_contribution_id: string; p_status: string }
+        Returns: undefined
       }
     }
     Enums: {

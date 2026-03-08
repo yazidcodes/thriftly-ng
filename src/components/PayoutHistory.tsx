@@ -39,7 +39,7 @@ const PayoutHistory = ({ records }: PayoutHistoryProps) => {
         </TableHeader>
         <TableBody>
           {records.map((record) => (
-            <TableRow key={record.cycleMonth}>
+            <TableRow key={`payout-${record.cycleMonth}-${record.recipientName}`}>
               <TableCell className="font-semibold text-foreground">Month {record.cycleMonth}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
