@@ -41,6 +41,7 @@ const fadeUp = {
 };
 
 const GroupDashboard = ({ groups }: GroupDashboardProps) => {
+  const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const latestGroup = groups[groups.length - 1];
   const allMembers = ["You", ...latestGroup.members];
 
