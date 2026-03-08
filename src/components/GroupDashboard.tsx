@@ -129,24 +129,19 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
                 Members
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {allMembers.map((member, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-accent text-xs font-bold text-accent-foreground">
-                      {member.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{member}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {i === 0 ? "Admin" : "Member"}
-                    </p>
-                  </div>
-                  <span className="h-2 w-2 rounded-full bg-primary" title="Active" />
-                </div>
-              ))}
-            </CardContent>
+             <CardContent className="space-y-2">
+               {allMembers.map((member, i) => (
+                 <MemberCard
+                   key={member}
+                   name={member}
+                   role={i === 0 ? "Admin" : "Member"}
+                   isExpanded={expandedMember === member}
+                   onToggle={() =>
+                     setExpandedMember((prev) => (prev === member ? null : member))
+                   }
+                 />
+               ))}
+             </CardContent>
           </Card>
         </motion.div>
 
