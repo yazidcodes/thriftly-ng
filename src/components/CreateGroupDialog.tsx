@@ -12,18 +12,17 @@ import {
 } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 
-export interface GroupData {
+export interface GroupFormData {
   name: string;
   contributionAmount: number;
   cycleLength: number;
   payoutDay?: number;
-  members: string[];
 }
 
 interface CreateGroupDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateGroup: (group: GroupData) => void;
+  onCreateGroup: (group: GroupFormData) => void;
 }
 
 const CreateGroupDialog = ({ open, onOpenChange, onCreateGroup }: CreateGroupDialogProps) => {
@@ -39,7 +38,6 @@ const CreateGroupDialog = ({ open, onOpenChange, onCreateGroup }: CreateGroupDia
       contributionAmount: parseFloat(contributionAmount) || 500,
       cycleLength: parseInt(cycleLength) || 4,
       payoutDay: payoutDay ? parseInt(payoutDay) : undefined,
-      members: [],
     });
     setGroupName("");
     setContributionAmount("");
