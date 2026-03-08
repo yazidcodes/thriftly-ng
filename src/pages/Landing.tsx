@@ -18,7 +18,7 @@ const Landing = () => {
           <div className="flex items-center gap-2 sm:gap-6">
             <button onClick={() => scrollTo("features")} className="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:block">Features</button>
             <button onClick={() => scrollTo("how-it-works")} className="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:block">How it Works</button>
-            <Button size="sm" className="font-semibold">
+            <Button size="sm" onClick={() => navigate("/dashboard")} className="font-semibold">
               Login / Get Started
             </Button>
           </div>
@@ -29,14 +29,15 @@ const Landing = () => {
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 md:grid-cols-2 md:py-24">
         <div className="space-y-6">
           <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Leave the Notebook.<br />
-            <span className="text-primary">Start Saving the Smart Way.</span>
+            Ditch the Notebook.<br />
+            <span className="text-primary">Secure Your Cooperative's Future.</span>
           </h1>
           <p className="max-w-lg text-lg leading-relaxed text-muted-foreground">
-            The easiest way for market admins in Zaria and beyond to track daily Ajo and Esusu contributions. Zero math errors, total transparency, and powered by voice.
+            ​The easiest way for market administrators in Zaria and beyond to track daily Ajo and Esusu contributions. 
+No calculation errors, just clear and transparent savings.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
-            <Button size="lg" className="gap-2 text-base font-bold shadow-lg">
+            <Button size="lg" className="gap-2 text-base font-bold shadow-lg" onClick={() => navigate("/dashboard")}>
               Open Free Ledger <ArrowRight className="h-5 w-5" />
             </Button>
             <Button size="lg" variant="outline" className="text-base font-bold" onClick={() => scrollTo("how-it-works")}>
@@ -94,31 +95,30 @@ const Landing = () => {
           </h2>
           <p className="mx-auto mb-12 max-w-xl text-center text-muted-foreground">Simple tools designed for busy market admins.</p>
           <div className="grid gap-8 sm:grid-cols-3">
-            {[
-              {
-                icon: Mic,
-                title: "Voice-to-Ledger.",
-                text: "Don't like typing? Just speak the contribution amount and Thriftly records it instantly.",
-              },
-              {
-                icon: ShieldCheck,
-                title: "Digital Trust.",
-                text: "Every member's balance is securely backed up to the cloud. No more lost notebooks or water damage.",
-              },
-              {
-                icon: BarChart3,
-                title: "Instant Balances.",
-                text: "Know exactly how much is in the group pot and who is next to collect, all at a glance.",
-              },
-            ].map((f) => (
-              <div key={f.title} className="rounded-2xl border border-border bg-background p-8 text-center shadow-sm transition hover:shadow-md">
+            {[{
+              icon: Mic,
+              title: "Voice-to-Ledger.",
+              text: "Don't like typing? Just speak the contribution amount and Thriftly records it instantly."
+            },
+            {
+              icon: ShieldCheck,
+              title: "Digital Trust.",
+              text: "Every member's balance is securely backed up to the cloud. No more lost notebooks or water damage."
+            },
+            {
+              icon: BarChart3,
+              title: "Instant Balances.",
+              text: "Know exactly how much is in the group pot and who is next to collect, all at a glance."
+            }].
+            map((f) =>
+            <div key={f.title} className="rounded-2xl border border-border bg-background p-8 text-center shadow-sm transition hover:shadow-md">
                 <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-accent">
                   <f.icon className="h-7 w-7 text-primary" />
                 </div>
                 <h3 className="mb-2 text-lg font-bold text-foreground">{f.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">{f.text}</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </section>
@@ -138,7 +138,7 @@ const Landing = () => {
       <section className="bg-primary py-16 text-center text-primary-foreground sm:py-20">
         <h2 className="mb-3 text-3xl font-extrabold sm:text-4xl">Ready to go digital?</h2>
         <p className="mb-8 text-lg opacity-90">Start your free ledger in under a minute.</p>
-        <Button size="lg" variant="secondary" className="text-base font-bold">
+        <Button size="lg" variant="secondary" className="text-base font-bold" onClick={() => navigate("/dashboard")}>
           Open Free Ledger <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </section>
@@ -147,8 +147,8 @@ const Landing = () => {
       <footer className="border-t border-border bg-card py-8 text-center text-sm text-muted-foreground">
         © 2026 Thriftly — A 3MTT NextGen Project.
       </footer>
-    </div>
-  );
+    </div>);
+
 };
 
 export default Landing;
