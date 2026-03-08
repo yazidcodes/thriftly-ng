@@ -98,16 +98,18 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
   const avgTrust = memberList.length
     ? Math.round(memberList.reduce((s, m) => s + m.trust_score, 0) / memberList.length)
     : 0;
-  const payoutAmount = expectedAmount * members.length;
+  const paidContributions = contributions.filter((c) => c.status === "paid");
+  const payoutAmount = paidContributions.reduce((s, c) => s + Number(c.amount), 0) || expectedAmount * members.length;
 
   const canGeneratePayout = members.length >= 2 && !group.payout_schedule_generated;
-  const allMembersPaid = memberList.length > 0 && memberList.every((m) => m.contributionStatus === "paid");
+  const atLeastOnePaid = memberList.some((m) => m.contributionStatus === "paid");
+  const allResolved = memberList.length > 0 && memberList.every((m) => m.contributionStatus === "paid" || m.contributionStatus === "missed");
   const currentCycleCompleted = payoutHistoryData.some((r) => r.cycle_month === currentPayoutMonth);
-  const unpaidMembers = memberList.filter((m) => m.contributionStatus !== "paid");
+  const unpaidMembers = memberList.filter((m) => m.contributionStatus === "pending");
   const paidOutUserIds = new Set(payoutHistoryData.map((r) => r.recipient_id));
 
-  const payoutReady = payoutScheduleData.length > 0 && currentEntry && allMembersPaid && !currentCycleCompleted;
-  const showPayoutWarning = payoutScheduleData.length > 0 && currentEntry && !allMembersPaid && !currentCycleCompleted && unpaidMembers.length > 0;
+  const payoutReady = payoutScheduleData.length > 0 && currentEntry && allResolved && atLeastOnePaid && !currentCycleCompleted;
+  const showPayoutWarning = payoutScheduleData.length > 0 && currentEntry && !allResolved && !currentCycleCompleted && unpaidMembers.length > 0;
   const cycleFullyCompleted = payoutScheduleData.length > 0 && !currentEntry && payoutHistoryData.length > 0;
 
   // Payout countdown
