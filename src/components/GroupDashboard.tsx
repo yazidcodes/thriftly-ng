@@ -89,7 +89,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
               <div className="mt-3 flex items-center justify-between">
                 <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
                   <Users className="h-3 w-3" />
-                  {group.members.length + 1}
+                  {memberNames.length}
                 </span>
                 <span className="text-xs font-medium text-muted-foreground">
                   {scheduleLabels[group.schedule]} · ${expectedAmount}
