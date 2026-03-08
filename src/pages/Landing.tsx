@@ -181,7 +181,7 @@ const Landing = () => {
       <section className="bg-primary py-16 text-center text-primary-foreground sm:py-20">
         <h2 className="mb-3 text-3xl font-extrabold sm:text-4xl">Ready to go digital?</h2>
         <p className="mb-8 text-lg opacity-90">Start your free ledger in under a minute.</p>
-        <Button size="lg" variant="secondary" className="text-base font-bold" onClick={() => navigate("/dashboard")}>
+        <Button size="lg" variant="secondary" className="text-base font-bold" onClick={() => navigate("/signup")}>
           Open Free Ledger <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </section>
