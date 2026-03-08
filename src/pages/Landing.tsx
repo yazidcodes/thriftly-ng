@@ -104,9 +104,9 @@ const Landing = () => {
           <div className="grid gap-8 sm:grid-cols-3">
             {[
             {
-              icon: Mic,
-              title: "Voice-to-Ledger.",
-              text: "Don't like typing? Just speak the contribution amount and Thriftly records it instantly."
+              icon: BarChart3,
+              title: "Contribution Insights.",
+              text: "Visualize contributions and payouts instantly. Track who has paid, upcoming collections, and group progress at a glance."
             },
             {
               icon: ShieldCheck,
