@@ -159,21 +159,19 @@ const MemberCard = ({ name, role, isExpanded, onToggle }: MemberCardProps) => {
               </div>
 
               {/* Bell notification */}
-              <div className="flex justify-end">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className={`gap-1.5 rounded-xl text-xs font-semibold ${
-                    hasOverdue
-                      ? "text-destructive border-destructive/30 hover:bg-destructive/10"
-                      : "text-muted-foreground border-border hover:bg-accent"
-                  }`}
-                  onClick={handleBellClick}
-                >
-                  <Bell className="h-3.5 w-3.5" />
-                  Send Reminder
-                </Button>
-              </div>
+              {hasOverdue && (
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 rounded-xl text-xs font-semibold text-destructive border-destructive/30 hover:bg-destructive/10"
+                    onClick={handleBellClick}
+                  >
+                    <Bell className="h-3.5 w-3.5" />
+                    Send Reminder
+                  </Button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
