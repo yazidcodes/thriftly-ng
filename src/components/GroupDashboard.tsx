@@ -62,7 +62,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
     ? Math.round(allMembers.reduce((s, m) => s + m.trustScore, 0) / allMembers.length)
     : 0;
   const paidCount = allMembers.filter((m) => m.payments.length > 0 && m.payments[0]?.status === "paid").length;
-  const activeCount = allMembers.length;
+  const activeCount = memberNames.length;
 
   // Trust insights
   const trustInsights = [
