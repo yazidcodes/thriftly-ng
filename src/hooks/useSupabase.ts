@@ -186,57 +186,48 @@ export function useUpdateContribution() {
       status: "paid" | "missed";
       amount?: number;
     }) => {
-      // 1. Update the contribution
-      const updates: Record<string, unknown> = { status };
-      if (status === "paid") {
-        updates.paid_at = new Date().toISOString();
-        if (amount !== undefined) updates.amount = amount;
-      }
-      const { error } = await supabase
-        .from("contributions")
-        .update(updates)
-        .eq("id", contributionId);
+      const { error } = await supabase.rpc("update_contribution_status", {
+        p_contribution_id: contributionId,
+        p_status: status,
+        p_amount: amount ?? 0,
+      });
       if (error) throw error;
+    },
+    onMutate: async ({ contributionId, status, amount }) => {
+      // Cancel outgoing refetches
+      await qc.cancelQueries({ queryKey: ["contributions"] });
+      await qc.cancelQueries({ queryKey: ["group_members"] });
 
-      // 2. Fetch the contribution to get user_id and group_id
-      const { data: contrib } = await supabase
-        .from("contributions")
-        .select("user_id, group_id")
-        .eq("id", contributionId)
-        .single();
-      if (!contrib) return;
+      // Snapshot previous values
+      const prevContributions = qc.getQueriesData({ queryKey: ["contributions"] });
+      const prevMembers = qc.getQueriesData({ queryKey: ["group_members"] });
 
-      // 3. Adjust trust score and debt balance
-      const delta = status === "paid" ? 2 : -5;
-      const { data: member } = await supabase
-        .from("group_members")
-        .select("trust_score, debt_balance")
-        .eq("group_id", contrib.group_id)
-        .eq("user_id", contrib.user_id)
-        .single();
-      if (member) {
-        const newScore = Math.max(0, Math.min(100, member.trust_score + delta));
-        const updates: Record<string, unknown> = { trust_score: newScore };
-        // If missed, add expected contribution to debt
-        if (status === "missed") {
-          // Fetch group to get expected amount
-          const { data: group } = await supabase
-            .from("groups")
-            .select("monthly_contribution")
-            .eq("id", contrib.group_id)
-            .single();
-          if (group) {
-            updates.debt_balance = (member.debt_balance || 0) + Number(group.monthly_contribution);
-          }
+      // Optimistically update contributions cache
+      qc.setQueriesData({ queryKey: ["contributions"] }, (old: ContributionRow[] | undefined) => {
+        if (!old) return old;
+        return old.map((c) =>
+          c.id === contributionId
+            ? { ...c, status, amount: status === "paid" ? (amount ?? c.amount) : 0, paid_at: status === "paid" ? new Date().toISOString() : null }
+            : c
+        );
+      });
+
+      return { prevContributions, prevMembers };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback on error
+      if (context?.prevContributions) {
+        for (const [key, data] of context.prevContributions) {
+          qc.setQueryData(key, data);
         }
-        await supabase
-          .from("group_members")
-          .update(updates)
-          .eq("group_id", contrib.group_id)
-          .eq("user_id", contrib.user_id);
+      }
+      if (context?.prevMembers) {
+        for (const [key, data] of context.prevMembers) {
+          qc.setQueryData(key, data);
+        }
       }
     },
-    onSuccess: () => {
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["contributions"] });
       qc.invalidateQueries({ queryKey: ["group_members"] });
     },
