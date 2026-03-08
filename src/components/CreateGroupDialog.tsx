@@ -123,6 +123,21 @@ const CreateGroupDialog = ({ open, onOpenChange, onCreateGroup }: CreateGroupDia
             </Select>
           </div>
 
+          {/* Contribution Amount */}
+          <div className="space-y-2">
+            <Label htmlFor="contribution-amount" className="text-sm font-semibold text-foreground">
+              Contribution Amount ($)
+            </Label>
+            <Input
+              id="contribution-amount"
+              type="number"
+              placeholder="e.g. 500"
+              value={contributionAmount}
+              onChange={(e) => setContributionAmount(e.target.value)}
+              className="rounded-xl border-input bg-secondary/50 placeholder:text-muted-foreground/60 focus-visible:ring-primary"
+            />
+          </div>
+
           {/* Members */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold text-foreground">
