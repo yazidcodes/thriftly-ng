@@ -373,7 +373,7 @@ export function useCompletePayout() {
       memberUserIds: string[];
       nextCycleMonth: number;
     }) => {
-      // 1. Record payout history
+      // 1. Record payout history (amount = sum of paid contributions)
       const { error: histErr } = await supabase.from("payout_history").insert({
         group_id: groupId,
         recipient_id: recipientId,
