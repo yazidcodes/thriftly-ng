@@ -122,8 +122,11 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onMarkPaid, 
             </span>
           </div>
         </div>
-        <Badge variant="outline" className={`text-[10px] font-bold ${colors.badge}`}>
+        <Badge variant="outline" className={`hidden sm:inline-flex text-[10px] font-bold ${colors.badge}`}>
           {member.trust_score}% · {getTrustLabel(tier)}
+        </Badge>
+        <Badge variant="outline" className={`sm:hidden text-[10px] font-bold ${colors.badge}`}>
+          {member.trust_score}%
         </Badge>
       </div>
 
