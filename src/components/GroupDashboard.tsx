@@ -43,11 +43,17 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
     return map;
   });
 
-  const allMemberNames = useMemo(() => ["You", ...latestGroup.members], [latestGroup.members]);
-  const allMembers = allMemberNames.map((n) => membersMap[n]).filter(Boolean);
+  const [memberNames, setMemberNames] = useState<string[]>(() => ["You", ...latestGroup.members]);
+  const allMembers = memberNames.map((n) => membersMap[n]).filter(Boolean);
 
   const handleUpdateMember = (updated: MemberData) => {
     setMembersMap((prev) => ({ ...prev, [updated.name]: updated }));
+  };
+
+  const handleAddMember = (username: string) => {
+    if (membersMap[username]) return;
+    setMembersMap((prev) => ({ ...prev, [username]: createMember(username) }));
+    setMemberNames((prev) => [...prev, username]);
   };
 
   // Computed stats
