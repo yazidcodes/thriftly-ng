@@ -2,7 +2,7 @@ import { LayoutDashboard, Users, Clock } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const tabs = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/members', label: 'Members', icon: Users },
   { path: '/history', label: 'History', icon: Clock },
 ];
