@@ -77,6 +77,7 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
         contributionStatus: contrib?.status ?? "pending",
         contributionId: contrib?.id,
         contributionAmount: contrib?.amount ?? 0,
+        debt_balance: m.debt_balance ?? 0,
       };
     });
   }, [members, contributions]);
