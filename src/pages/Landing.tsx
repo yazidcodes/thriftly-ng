@@ -1,4 +1,4 @@
-import { Mic, ShieldCheck, BarChart3, ArrowRight, Smartphone } from "lucide-react";
+import { PieChart, ShieldCheck, BarChart3, ArrowRight, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -104,9 +104,9 @@ const Landing = () => {
           <div className="grid gap-8 sm:grid-cols-3">
             {[
             {
-              icon: Mic,
-              title: "Voice-to-Ledger.",
-              text: "Don't like typing? Just speak the contribution amount and Thriftly records it instantly."
+              icon: PieChart,
+              title: "Contribution Insights.",
+              text: "Visualize contributions and payouts instantly. Track who has paid, upcoming collections, and group progress at a glance."
             },
             {
               icon: ShieldCheck,
