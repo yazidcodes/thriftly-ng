@@ -100,14 +100,10 @@ const Dashboard = () => {
 
       {/* Empty State */}
       <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4">
-        {/* Dot grid background */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage: "radial-gradient(circle, hsl(var(--primary) / 0.07) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        />
+        {/* Gradient blobs */}
+        <div className="pointer-events-none absolute -left-32 -top-32 h-[400px] w-[400px] rounded-full bg-primary/[0.04] blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -right-24 h-[350px] w-[350px] rounded-full bg-primary/[0.05] blur-3xl" />
+        <div className="pointer-events-none absolute left-1/2 top-1/3 h-[250px] w-[250px] -translate-x-1/2 rounded-full bg-accent/40 blur-3xl" />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
