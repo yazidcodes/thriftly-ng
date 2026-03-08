@@ -101,12 +101,6 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
   // Current payout recipient
   const currentRecipient = payoutSchedule?.find((e) => e.status === "current");
 
-  // Check for unpaid members
-  const unpaidMembers = allMembers.filter(
-    (m) => m.payments.length === 0 || m.payments[0]?.status !== "paid"
-  );
-  const hasUnpaidWarning = payoutSchedule && unpaidMembers.length > 0;
-
   // Days until payout (mock)
   const payoutDay = latestGroup.payoutDay ?? 15;
   const now = new Date();
