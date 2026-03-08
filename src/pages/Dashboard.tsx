@@ -103,10 +103,29 @@ const Dashboard = () => {
 
       {/* Empty State */}
       <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4">
-        {/* Gradient blobs */}
-        <div className="pointer-events-none absolute -left-32 -top-32 h-[400px] w-[400px] rounded-full bg-primary/[0.04] blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -right-24 h-[350px] w-[350px] rounded-full bg-primary/[0.05] blur-3xl" />
-        <div className="pointer-events-none absolute left-1/2 top-1/3 h-[250px] w-[250px] -translate-x-1/2 rounded-full bg-accent/40 blur-3xl" />
+        {/* Floating geometric shapes */}
+        {floatingShapes.map((shape, i) => (
+          <motion.div
+            key={i}
+            className="pointer-events-none absolute text-primary/[0.06]"
+            style={{ left: shape.x, top: shape.y }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{
+              opacity: 1,
+              scale: 1,
+              y: [0, -12, 0],
+              rotate: [0, shape.type === "square" ? 15 : 8, 0],
+            }}
+            transition={{
+              opacity: { duration: 1, delay: shape.delay * 0.2 },
+              scale: { duration: 1, delay: shape.delay * 0.2 },
+              y: { duration: 6 + shape.delay, repeat: Infinity, ease: "easeInOut" },
+              rotate: { duration: 8 + shape.delay, repeat: Infinity, ease: "easeInOut" },
+            }}
+          >
+            <ShapeSvg type={shape.type} size={shape.size} />
+          </motion.div>
+        ))}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
