@@ -55,6 +55,7 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
   const completePayout = useCompletePayout();
   const updateContribution = useUpdateContribution();
   const addMember = useAddMember(group.id);
+  const updateDebt = useUpdateDebt();
 
   const expectedAmount = group.monthly_contribution;
   const cycleLength = group.cycle_length;
