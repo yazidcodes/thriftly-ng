@@ -1,0 +1,1 @@
+ALTER TABLE public.group_members ADD COLUMN IF NOT EXISTS debt_balance numeric NOT NULL DEFAULT 0;
