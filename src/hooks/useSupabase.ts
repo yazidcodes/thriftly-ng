@@ -117,11 +117,21 @@ export function useGroupMembers(groupId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("group_members")
-        .select("*, profiles:user_id(username, email)")
+        .select("*")
         .eq("group_id", groupId!)
         .order("joined_at");
       if (error) throw error;
-      return data as GroupMemberRow[];
+      // Fetch profiles separately
+      const userIds = (data ?? []).map((m) => m.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, username, email")
+        .in("user_id", userIds);
+      const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+      return (data ?? []).map((m) => ({
+        ...m,
+        profiles: profileMap.get(m.user_id) ?? null,
+      })) as GroupMemberRow[];
     },
     enabled: !!groupId,
   });
