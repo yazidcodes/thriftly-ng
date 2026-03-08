@@ -19,6 +19,9 @@ const floatingShapes = [
   { type: "square", size: 50, x: "50%", y: "10%", delay: 4 },
   { type: "hexagon", size: 70, x: "30%", y: "85%", delay: 1 },
   { type: "circle", size: 40, x: "90%", y: "50%", delay: 2.5 },
+  { type: "hexagon", size: 55, x: "60%", y: "12%", delay: 3.5 },
+  { type: "circle", size: 65, x: "5%", y: "45%", delay: 0.5 },
+  { type: "square", size: 45, x: "42%", y: "78%", delay: 1.8 },
 ];
 
 const ShapeSvg = ({ type, size }: { type: string; size: number }) => {
