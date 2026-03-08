@@ -82,57 +82,116 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
     >
       {/* Summary Cards */}
       <motion.div variants={fadeUp} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {groups.map((group, i) => (
-          <Card key={i} className="relative overflow-hidden rounded-2xl border-border/50 shadow-sm">
-            <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
-            <CardContent className="p-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Group</p>
-              <p className="mt-1 text-lg font-extrabold text-foreground truncate">{group.name}</p>
-              <div className="mt-3 flex items-center justify-between">
-                <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
-                  <Users className="h-3 w-3" />
-                  {memberNames.length}
-                </span>
-                <span className="text-xs font-medium text-muted-foreground">
-                  {scheduleLabels[group.schedule]} · ${expectedAmount}
-                </span>
+        {/* Group Card */}
+        <Card className="group relative overflow-hidden rounded-2xl border-border/50 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+          <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent">
+                <Users className="h-4.5 w-4.5 text-primary" />
               </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        <Card className="rounded-2xl border-border/50 shadow-sm">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent">
-              <DollarSign className="h-5 w-5 text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Group</span>
             </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground">Total Collected</p>
-              <p className="text-xl font-extrabold text-foreground">${totalCollected.toLocaleString()}</p>
+            <p className="text-xl font-extrabold text-foreground truncate">{latestGroup.name}</p>
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3" />
+              <span>{scheduleLabels[latestGroup.schedule]} cycle · ${expectedAmount}/round</span>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-2xl border-border/50 shadow-sm">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent">
-              <TrendingUp className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground">Avg Trust Score</p>
-              <p className="text-xl font-extrabold text-foreground">{avgTrust}%</p>
+            <div className="mt-3 flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
+                <Users className="h-3 w-3" />
+                {memberNames.length} members
+              </span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border-border/50 shadow-sm">
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent">
-              <ShieldCheck className="h-5 w-5 text-primary" />
+        {/* Total Collected */}
+        <Card className="group relative overflow-hidden rounded-2xl border-border/50 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+          <div className="absolute inset-x-0 top-0 h-1 bg-success" />
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-success-light">
+                <DollarSign className="h-4.5 w-4.5 text-success" />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total Collected</span>
             </div>
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground">Active Members</p>
-              <p className="text-xl font-extrabold text-foreground">{activeCount}</p>
+            <p className="text-2xl font-extrabold text-foreground">${totalCollected.toLocaleString()}</p>
+            <div className="mt-3 space-y-1">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>Collection progress</span>
+                <span className="font-bold">{Math.min(100, Math.round((totalCollected / Math.max(expectedAmount * memberNames.length, 1)) * 100))}%</span>
+              </div>
+              <Progress
+                value={Math.min(100, Math.round((totalCollected / Math.max(expectedAmount * memberNames.length, 1)) * 100))}
+                className="h-1.5 rounded-full bg-secondary [&>div]:bg-success"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Average Trust Score */}
+        {(() => {
+          const trustTier = getTrustTier(avgTrust);
+          const trustLabel = getTrustLabel(trustTier);
+          const trustBadgeClass = trustTier === "high"
+            ? "bg-success-light text-success border-success/20"
+            : trustTier === "moderate"
+            ? "bg-warning-light text-warning border-warning/20"
+            : "bg-destructive/10 text-destructive border-destructive/20";
+          return (
+            <Card className="group relative overflow-hidden rounded-2xl border-border/50 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+              <div className="absolute inset-x-0 top-0 h-1 bg-stat-trust" />
+              <CardContent className="p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stat-trust-light">
+                    <ShieldCheck className="h-4.5 w-4.5 text-stat-trust" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Avg Trust Score</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-extrabold text-foreground">{avgTrust}%</p>
+                  <Badge variant="outline" className={`text-[10px] font-bold border ${trustBadgeClass}`}>
+                    {trustLabel}
+                  </Badge>
+                </div>
+                <div className="mt-3">
+                  <Progress
+                    value={avgTrust}
+                    className={`h-1.5 rounded-full bg-secondary ${
+                      trustTier === "high" ? "[&>div]:bg-success" : trustTier === "moderate" ? "[&>div]:bg-warning" : "[&>div]:bg-destructive"
+                    }`}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
+        {/* Active Members */}
+        <Card className="group relative overflow-hidden rounded-2xl border-border/50 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+          <div className="absolute inset-x-0 top-0 h-1 bg-stat-members" />
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stat-members-light">
+                <Users className="h-4.5 w-4.5 text-stat-members" />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Active Members</span>
+            </div>
+            <p className="text-2xl font-extrabold text-foreground">{activeCount}</p>
+            <div className="mt-3 flex items-center -space-x-2">
+              {allMembers.slice(0, 5).map((m) => (
+                <Avatar key={m.name} className="h-7 w-7 border-2 border-card">
+                  <AvatarFallback className="bg-accent text-[9px] font-bold text-accent-foreground">
+                    {m.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {allMembers.length > 5 && (
+                <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-muted text-[9px] font-bold text-muted-foreground">
+                  +{allMembers.length - 5}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
