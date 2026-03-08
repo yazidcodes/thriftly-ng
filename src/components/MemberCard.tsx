@@ -99,8 +99,8 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
       onClick={onToggle}
     >
       {/* Collapsed row */}
-      <div className="flex items-center gap-3 p-3">
-        <Avatar className="h-9 w-9">
+      <div className="flex items-center gap-3 p-3 sm:p-4">
+        <Avatar className="h-10 w-10 sm:h-9 sm:w-9">
           <AvatarFallback className="bg-accent text-xs font-bold text-accent-foreground">
             {member.name.slice(0, 2).toUpperCase()}
           </AvatarFallback>
@@ -135,7 +135,7 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
             className="overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-t border-border/50 px-4 pb-4 pt-3 space-y-4">
+            <div className="border-t border-border/50 px-3 pb-4 pt-3 space-y-4 sm:px-4">
               {/* Trust Score */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
@@ -164,7 +164,7 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
               </div>
 
               {/* Admin Actions */}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 [&_button]:min-h-[44px] sm:[&_button]:min-h-0">
                 <Button
                   size="sm"
                   variant="outline"
@@ -186,7 +186,7 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
               </div>
 
               {/* Manual Payment */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 [&_button]:min-h-[44px] sm:[&_button]:min-h-0">
                 <Input
                   type="number"
                   placeholder="Manual amount"
@@ -213,7 +213,7 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Payment History
                   </span>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 overflow-x-auto">
                     {member.payments.slice(0, 5).map((p, i) => (
                       <div key={i} className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">{p.date}</span>

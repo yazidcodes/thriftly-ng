@@ -78,10 +78,10 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
       variants={stagger}
       initial="hidden"
       animate="show"
-      className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6"
+      className="mx-auto max-w-6xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6"
     >
       {/* Summary Cards */}
-      <motion.div variants={fadeUp} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <motion.div variants={fadeUp} className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
         {/* Group Card */}
         <Card className="group relative overflow-hidden rounded-2xl border-border/50 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
           <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
@@ -198,7 +198,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
       </motion.div>
 
       {/* Main grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Members */}
         <motion.div variants={fadeUp} className="lg:col-span-2">
           <Card className="rounded-2xl border-border/50 shadow-sm">
