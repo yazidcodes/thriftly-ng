@@ -354,69 +354,22 @@ export function useCompletePayout() {
       recipientId,
       cycleMonth,
       amount,
-      memberUserIds,
       nextCycleMonth,
     }: {
       groupId: string;
       recipientId: string;
       cycleMonth: number;
       amount: number;
-      memberUserIds: string[];
       nextCycleMonth: number;
     }) => {
-      // 1. Record payout history (amount = sum of paid contributions)
-      const { error: histErr } = await supabase.from("payout_history").insert({
-        group_id: groupId,
-        recipient_id: recipientId,
-        cycle_month: cycleMonth,
-        amount,
+      const { error } = await supabase.rpc("complete_payout", {
+        p_group_id: groupId,
+        p_recipient_id: recipientId,
+        p_cycle_month: cycleMonth,
+        p_amount: amount,
+        p_next_cycle_month: nextCycleMonth,
       });
-      if (histErr) throw histErr;
-
-      // 2. Mark current schedule entry as completed
-      const { error: completeErr } = await supabase
-        .from("payout_schedule")
-        .update({ status: "completed" })
-        .eq("group_id", groupId)
-        .eq("payout_month", cycleMonth);
-      if (completeErr) throw completeErr;
-
-      // 3. Move next to current
-      const { error: nextErr } = await supabase
-        .from("payout_schedule")
-        .update({ status: "current" })
-        .eq("group_id", groupId)
-        .eq("payout_month", nextCycleMonth);
-      if (nextErr) throw nextErr;
-
-      // 4. Create contributions for next cycle
-      const contribRows = memberUserIds.map((uid) => ({
-        group_id: groupId,
-        user_id: uid,
-        cycle_month: nextCycleMonth,
-        amount: 0,
-        status: "pending" as const,
-      }));
-      await supabase.from("contributions").insert(contribRows);
-
-      // 5. Update member trust scores (bump for paid)
-      for (const uid of memberUserIds) {
-        await supabase.rpc("is_group_member", { _user_id: uid, _group_id: groupId });
-        // Simple trust bump via group_members
-        const { data: member } = await supabase
-          .from("group_members")
-          .select("trust_score")
-          .eq("group_id", groupId)
-          .eq("user_id", uid)
-          .single();
-        if (member) {
-          await supabase
-            .from("group_members")
-            .update({ trust_score: Math.min(100, member.trust_score + 2) })
-            .eq("group_id", groupId)
-            .eq("user_id", uid);
-        }
-      }
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payout_schedule"] });
