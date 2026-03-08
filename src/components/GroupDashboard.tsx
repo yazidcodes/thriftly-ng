@@ -426,7 +426,8 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
                   onMarkPaid={handleMarkPaid}
                   onMarkMissed={handleMarkMissed}
                   hasReceivedPayout={paidOutUserIds.has(member.user_id)}
-                  isUnpaid={showPayoutWarning ? member.contributionStatus !== "paid" : false}
+                  isUnpaid={showPayoutWarning ? member.contributionStatus === "pending" : false}
+                  onUpdateDebt={handleUpdateDebt}
                 />
               ))}
             </CardContent>
