@@ -236,11 +236,20 @@ export function usePayoutSchedule(groupId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payout_schedule")
-        .select("*, profiles:user_id(username)")
+        .select("*")
         .eq("group_id", groupId!)
         .order("payout_month");
       if (error) throw error;
-      return data as PayoutScheduleRow[];
+      const userIds = (data ?? []).map((d) => d.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, username")
+        .in("user_id", userIds);
+      const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+      return (data ?? []).map((d) => ({
+        ...d,
+        profiles: profileMap.get(d.user_id) ?? null,
+      })) as PayoutScheduleRow[];
     },
     enabled: !!groupId,
   });
