@@ -11,8 +11,11 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import CreateGroupDialog, { type GroupData } from "@/components/CreateGroupDialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { useGroups, useCreateGroup } from "@/hooks/useSupabase";
+import CreateGroupDialog from "@/components/CreateGroupDialog";
 import GroupDashboard from "@/components/GroupDashboard";
+import { useNavigate } from "react-router-dom";
 
 const floatingShapes = [
   { type: "circle", size: 120, x: "10%", y: "15%", delay: 0 },
@@ -57,13 +60,41 @@ const ShapeSvg = ({ type, size }: { type: string; size: number }) => {
 
 const Dashboard = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [groups, setGroups] = useState<GroupData[]>([]);
+  const { user, signOut } = useAuth();
+  const { data: groups, isLoading } = useGroups();
+  const createGroup = useCreateGroup();
+  const navigate = useNavigate();
 
-  const hasGroups = groups.length > 0;
+  const hasGroups = (groups?.length ?? 0) > 0;
+  const username = user?.user_metadata?.username || user?.email?.split("@")[0] || "User";
+  const initials = username.slice(0, 2).toUpperCase();
 
-  const handleCreateGroup = (group: GroupData) => {
-    setGroups((prev) => [...prev, group]);
+  const handleCreateGroup = (group: {
+    name: string;
+    contributionAmount: number;
+    cycleLength: number;
+    payoutDay?: number;
+  }) => {
+    createGroup.mutate({
+      group_name: group.name,
+      monthly_contribution: group.contributionAmount,
+      cycle_length: group.cycleLength,
+      payout_day: group.payoutDay,
+    });
   };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -88,13 +119,11 @@ const Dashboard = () => {
 
             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
               <HelpCircle className="h-5 w-5" />
-              <span className="sr-only">Help</span>
             </Button>
 
             <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
               <Bell className="h-5 w-5" />
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
-              <span className="sr-only">Notifications</span>
             </Button>
 
             <DropdownMenu>
@@ -102,11 +131,11 @@ const Dashboard = () => {
                 <Button variant="ghost" className="gap-2 px-2">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
-                      AD
+                      {initials}
                     </AvatarFallback>
                   </Avatar>
                   <span className="hidden text-sm font-semibold text-foreground sm:inline">
-                    Admin
+                    {username}
                   </span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
@@ -115,7 +144,7 @@ const Dashboard = () => {
                 <DropdownMenuItem>Profile</DropdownMenuItem>
                 <DropdownMenuItem>Settings</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem className="text-destructive" onClick={handleSignOut}>
                   Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -127,11 +156,10 @@ const Dashboard = () => {
       {/* Content */}
       {hasGroups ? (
         <main className="flex-1">
-          <GroupDashboard groups={groups} />
+          <GroupDashboard group={groups![0]} />
         </main>
       ) : (
         <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4">
-          {/* Floating geometric shapes */}
           {floatingShapes.map((shape, i) => (
             <motion.div
               key={i}
@@ -182,11 +210,6 @@ const Dashboard = () => {
               Create Your First Group
             </Button>
 
-            <Button size="lg" variant="outline" className="mt-3 gap-2 text-base font-bold shadow-lg hover:shadow-xl transition-shadow">
-              <Users className="h-5 w-5" />
-              Check Your Groups
-            </Button>
-
             <Card className="mx-auto mt-10 w-fit border-border/50 bg-card/80 px-6 py-5 shadow-sm backdrop-blur-sm">
               <ul className="space-y-3 text-left text-sm text-muted-foreground">
                 {[
@@ -211,7 +234,6 @@ const Dashboard = () => {
         </main>
       )}
 
-      {/* Dialog */}
       <CreateGroupDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}

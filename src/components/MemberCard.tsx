@@ -7,21 +7,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import {
-  type MemberData,
-  type Payment,
-  getTrustTier,
-  getTrustLabel,
-  applyTrustDelta,
-  formatDate,
-} from "@/lib/members";
+import { getTrustTier, getTrustLabel } from "@/lib/members";
+
+interface MemberCardMember {
+  id: string;
+  user_id: string;
+  username: string;
+  trust_score: number;
+  contributionStatus: string;
+  contributionId?: string;
+  contributionAmount: number;
+}
 
 interface MemberCardProps {
-  member: MemberData;
+  member: MemberCardMember;
   expectedAmount: number;
   isExpanded: boolean;
   onToggle: () => void;
-  onUpdate: (updated: MemberData) => void;
+  onMarkPaid: (contributionId: string, amount: number) => void;
+  onMarkMissed: (contributionId: string) => void;
   hasReceivedPayout?: boolean;
   isUnpaid?: boolean;
 }
@@ -47,60 +51,23 @@ const statusStyle: Record<string, string> = {
   missed: "bg-destructive/10 text-destructive",
 };
 
-const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate, hasReceivedPayout, isUnpaid }: MemberCardProps) => {
+const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onMarkPaid, onMarkMissed, hasReceivedPayout, isUnpaid }: MemberCardProps) => {
   const [manualAmount, setManualAmount] = useState("");
-  const tier = getTrustTier(member.trustScore);
+  const tier = getTrustTier(member.trust_score);
   const colors = trustColors[tier];
-  const hasMissed = member.payments.some((p) => p.status === "missed");
-
-  const addPayment = (status: "paid" | "missed", amount?: number) => {
-    const payment: Payment = {
-      date: formatDate(),
-      amount: status === "paid" ? (amount ?? expectedAmount) : 0,
-      status,
-    };
-    const newScore = applyTrustDelta(member.trustScore, status);
-    onUpdate({
-      ...member,
-      trustScore: newScore,
-      totalContributed: member.totalContributed + payment.amount,
-      payments: [payment, ...member.payments].slice(0, 10),
-    });
-    toast.success(
-      status === "paid"
-        ? `Marked ${member.name} as paid`
-        : `Marked ${member.name} as missed`
-    );
-  };
 
   const handleManualPayment = () => {
     const amt = parseFloat(manualAmount);
-    if (!amt || amt <= 0) return;
-    const payment: Payment = { date: formatDate(), amount: amt, status: "paid" };
-    const newScore = applyTrustDelta(member.trustScore, "paid");
-    onUpdate({
-      ...member,
-      trustScore: newScore,
-      totalContributed: member.totalContributed + amt,
-      payments: [payment, ...member.payments].slice(0, 10),
-    });
+    if (!amt || amt <= 0 || !member.contributionId) return;
+    onMarkPaid(member.contributionId, amt);
     setManualAmount("");
-    toast.success(`Manual payment of ₦${amt.toLocaleString()} recorded for ${member.name}`);
-  };
-
-  const handleBellClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    toast.info(`Reminder sent to ${member.name}`, {
-      description: "A contribution reminder notification has been triggered.",
-    });
+    toast.success(`Manual payment of ₦${amt.toLocaleString()} recorded for ${member.username}`);
   };
 
   return (
     <div
       className={`rounded-2xl border shadow-sm transition-shadow hover:shadow-md cursor-pointer ${
-        isUnpaid
-          ? "border-warning/50 bg-warning-light/30"
-          : "border-border/50 bg-card"
+        isUnpaid ? "border-warning/50 bg-warning-light/30" : "border-border/50 bg-card"
       }`}
       onClick={onToggle}
     >
@@ -108,12 +75,12 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate, ha
       <div className="flex items-center gap-3 p-3 sm:p-4">
         <Avatar className="h-10 w-10 sm:h-9 sm:w-9">
           <AvatarFallback className="bg-accent text-xs font-bold text-accent-foreground">
-            {member.name.slice(0, 2).toUpperCase()}
+            {member.username.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-foreground truncate">{member.name}</p>
+            <p className="text-sm font-semibold text-foreground truncate">{member.username}</p>
             {hasReceivedPayout && (
               <Badge variant="outline" className="gap-1 border-primary/30 text-primary text-[10px] font-bold shrink-0">
                 <Award className="h-3 w-3" />
@@ -121,21 +88,15 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate, ha
               </Badge>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">{member.role}</p>
+          <div className="flex items-center gap-2">
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusStyle[member.contributionStatus] ?? statusStyle.pending}`}>
+              {member.contributionStatus}
+            </span>
+          </div>
         </div>
         <Badge variant="outline" className={`text-[10px] font-bold ${colors.badge}`}>
-          {member.trustScore}% · {getTrustLabel(tier)}
+          {member.trust_score}% · {getTrustLabel(tier)}
         </Badge>
-        {hasMissed && (
-          <button
-            onClick={handleBellClick}
-            className="relative shrink-0 rounded-full p-1 text-destructive hover:bg-destructive/10 transition-colors"
-            title="Send reminder"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-destructive animate-pulse" />
-          </button>
-        )}
       </div>
 
       {/* Expanded card */}
@@ -153,24 +114,15 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate, ha
               {/* Trust Score */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Trust Score
-                  </span>
-                  <span className="text-sm font-extrabold text-foreground">
-                    {member.trustScore}%
-                  </span>
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Trust Score</span>
+                  <span className="text-sm font-extrabold text-foreground">{member.trust_score}%</span>
                 </div>
-                <Progress
-                  value={member.trustScore}
-                  className={`h-2 rounded-full bg-secondary ${colors.progress}`}
-                />
+                <Progress value={member.trust_score} className={`h-2 rounded-full bg-secondary ${colors.progress}`} />
               </div>
 
               {/* Contribution Status */}
               <div className="space-y-1.5">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Contribution Status
-                </span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contribution Status</span>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Expected</span>
                   <span className="font-bold text-foreground">₦{expectedAmount.toLocaleString()}</span>
@@ -178,92 +130,49 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate, ha
               </div>
 
               {/* Admin Actions */}
-              <div className="flex flex-wrap gap-2 [&_button]:min-h-[44px] sm:[&_button]:min-h-0">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 rounded-xl text-xs font-semibold border-[hsl(var(--success))]/30 text-[hsl(var(--success))] hover:bg-[hsl(var(--success-light))]"
-                  onClick={() => addPayment("paid")}
-                >
-                  <Check className="h-3.5 w-3.5" />
-                  Mark as Paid
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 rounded-xl text-xs font-semibold border-destructive/30 text-destructive hover:bg-destructive/10"
-                  onClick={() => addPayment("missed")}
-                >
-                  <XCircle className="h-3.5 w-3.5" />
-                  Mark as Missed
-                </Button>
-              </div>
-
-              {/* Manual Payment */}
-              <div className="flex gap-2 [&_button]:min-h-[44px] sm:[&_button]:min-h-0">
-                <Input
-                  type="number"
-                  placeholder="Manual amount"
-                  value={manualAmount}
-                  onChange={(e) => setManualAmount(e.target.value)}
-                  className="flex-1 rounded-xl text-xs h-8 bg-secondary/50"
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1 rounded-xl text-xs font-semibold border-primary/30 text-primary hover:bg-accent"
-                  onClick={handleManualPayment}
-                  disabled={!manualAmount || parseFloat(manualAmount) <= 0}
-                >
-                  <PlusCircle className="h-3.5 w-3.5" />
-                  Add
-                </Button>
-              </div>
-
-              {/* Payment History */}
-              {member.payments.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Payment History
-                  </span>
-                  <div className="space-y-1.5 overflow-x-auto">
-                    {member.payments.slice(0, 5).map((p, i) => (
-                      <div key={i} className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">{p.date}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">₦{p.amount.toLocaleString()}</span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusStyle[p.status]}`}
-                          >
-                            {p.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground pt-1">
-                    Total contributed:{" "}
-                    <span className="font-bold text-foreground">₦{member.totalContributed.toLocaleString()}</span>
-                  </p>
-                </div>
-              )}
-
-              {member.payments.length === 0 && (
-                <p className="text-xs text-muted-foreground italic">No payment history yet.</p>
-              )}
-
-              {/* Bell reminder at bottom-right */}
-              {hasMissed && (
-                <div className="flex justify-end">
+              {member.contributionId && member.contributionStatus === "pending" && (
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="gap-1.5 rounded-xl text-xs font-semibold text-destructive border-destructive/30 hover:bg-destructive/10"
-                    onClick={handleBellClick}
+                    className="gap-1.5 rounded-xl text-xs font-semibold border-[hsl(var(--success))]/30 text-[hsl(var(--success))] hover:bg-[hsl(var(--success-light))]"
+                    onClick={() => onMarkPaid(member.contributionId!, expectedAmount)}
                   >
-                    <Bell className="h-3.5 w-3.5" />
-                    Send Reminder
+                    <Check className="h-3.5 w-3.5" />
+                    Mark as Paid
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 rounded-xl text-xs font-semibold border-destructive/30 text-destructive hover:bg-destructive/10"
+                    onClick={() => onMarkMissed(member.contributionId!)}
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                    Mark as Missed
+                  </Button>
+                </div>
+              )}
+
+              {/* Manual Payment */}
+              {member.contributionId && member.contributionStatus === "pending" && (
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    placeholder="Manual amount"
+                    value={manualAmount}
+                    onChange={(e) => setManualAmount(e.target.value)}
+                    className="flex-1 rounded-xl text-xs h-8 bg-secondary/50"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 rounded-xl text-xs font-semibold border-primary/30 text-primary hover:bg-accent"
+                    onClick={handleManualPayment}
+                    disabled={!manualAmount || parseFloat(manualAmount) <= 0}
+                  >
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    Add
                   </Button>
                 </div>
               )}

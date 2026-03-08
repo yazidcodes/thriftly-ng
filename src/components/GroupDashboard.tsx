@@ -9,17 +9,27 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
-import type { GroupData } from "./CreateGroupDialog";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  useGroupMembers,
+  useContributions,
+  usePayoutSchedule,
+  usePayoutHistory,
+  useGeneratePayoutSchedule,
+  useCompletePayout,
+  useUpdateContribution,
+  useAddMember,
+  type GroupRow,
+} from "@/hooks/useSupabase";
 import MemberCard from "./MemberCard";
 import MemberSearchBar from "./MemberSearchBar";
 import PayoutTimeline, { type PayoutEntry } from "./PayoutTimeline";
 import ConfirmPayoutDialog from "./ConfirmPayoutDialog";
-import PayoutHistory, { type PayoutRecord } from "./PayoutHistory";
-import { type MemberData, createMember, getTrustTier, getTrustLabel, formatDate } from "@/lib/members";
+import PayoutHistory from "./PayoutHistory";
+import { getTrustTier, getTrustLabel } from "@/lib/members";
 
 interface GroupDashboardProps {
-  groups: GroupData[];
+  group: GroupRow;
 }
 
 const stagger = {
@@ -32,168 +42,122 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
-/** Fisher-Yates shuffle */
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-const GroupDashboard = ({ groups }: GroupDashboardProps) => {
+const GroupDashboard = ({ group }: GroupDashboardProps) => {
+  const { user } = useAuth();
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
-  const latestGroup = groups[groups.length - 1];
-  const expectedAmount = latestGroup.contributionAmount ?? 500;
-  const cycleLength = latestGroup.cycleLength ?? 4;
-
-  const [membersMap, setMembersMap] = useState<Record<string, MemberData>>(() => {
-    const map: Record<string, MemberData> = {};
-    map["You"] = createMember("You", "Admin");
-    latestGroup.members.forEach((name) => {
-      map[name] = createMember(name);
-    });
-    return map;
-  });
-
-  const [memberNames, setMemberNames] = useState<string[]>(() => ["You", ...latestGroup.members]);
-  const allMembers = memberNames.map((n) => membersMap[n]).filter(Boolean);
-
-  // Payout state
-  const [payoutSchedule, setPayoutSchedule] = useState<PayoutEntry[] | null>(null);
-  const [currentPayoutMonth, setCurrentPayoutMonth] = useState(1);
-  const [payoutHistory, setPayoutHistory] = useState<PayoutRecord[]>([]);
-  const [paidOutMembers, setPaidOutMembers] = useState<Set<string>>(new Set());
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
-  const handleUpdateMember = (updated: MemberData) => {
-    setMembersMap((prev) => ({ ...prev, [updated.name]: updated }));
-  };
+  const { data: members = [] } = useGroupMembers(group.id);
+  const { data: payoutScheduleData = [] } = usePayoutSchedule(group.id);
+  const { data: payoutHistoryData = [] } = usePayoutHistory(group.id);
+  const generatePayout = useGeneratePayoutSchedule();
+  const completePayout = useCompletePayout();
+  const updateContribution = useUpdateContribution();
+  const addMember = useAddMember(group.id);
 
-  const handleAddMember = (username: string) => {
-    if (membersMap[username]) return;
-    setMembersMap((prev) => ({ ...prev, [username]: createMember(username) }));
-    setMemberNames((prev) => [...prev, username]);
-  };
+  const expectedAmount = group.monthly_contribution;
+  const cycleLength = group.cycle_length;
 
-  // Computed stats
-  const totalCollected = allMembers.reduce((s, m) => s + m.totalContributed, 0);
-  const avgTrust = allMembers.length
-    ? Math.round(allMembers.reduce((s, m) => s + m.trustScore, 0) / allMembers.length)
-    : 0;
-  const activeCount = memberNames.length;
-  const canGeneratePayout = memberNames.length >= 2 && !payoutSchedule;
+  // Current cycle month = last completed + 1, or first current entry
+  const currentEntry = payoutScheduleData.find((e) => e.status === "current");
+  const currentPayoutMonth = currentEntry?.payout_month ?? 1;
 
-  // Payout amount = contribution × number of members
-  const payoutAmount = expectedAmount * memberNames.length;
+  const { data: contributions = [] } = useContributions(group.id, currentPayoutMonth);
 
-  // Generate payout schedule
-  const handleGeneratePayout = useCallback(() => {
-    const shuffled = shuffle(memberNames);
-    const entries: PayoutEntry[] = shuffled.slice(0, cycleLength).map((name, i) => ({
-      month: i + 1,
-      memberName: name,
-      status: i === 0 ? "current" as const : "upcoming" as const,
+  // Map members with their contribution status
+  const memberList = useMemo(() => {
+    return members.map((m) => {
+      const contrib = contributions.find((c) => c.user_id === m.user_id);
+      return {
+        ...m,
+        username: m.profiles?.username ?? "Unknown",
+        email: m.profiles?.email ?? "",
+        contributionStatus: contrib?.status ?? "pending",
+        contributionId: contrib?.id,
+        contributionAmount: contrib?.amount ?? 0,
+      };
+    });
+  }, [members, contributions]);
+
+  // Payout entries for timeline
+  const payoutEntries: PayoutEntry[] = useMemo(() => {
+    return payoutScheduleData.map((e) => ({
+      month: e.payout_month,
+      memberName: e.profiles?.username ?? "Unknown",
+      status: e.status as "completed" | "current" | "upcoming",
     }));
-    setPayoutSchedule(entries);
-    setCurrentPayoutMonth(1);
-    toast.success("Payout schedule successfully generated and locked.", {
-      description: `${entries.length}-month rotation created for ${latestGroup.name}.`,
-    });
-  }, [memberNames, cycleLength, latestGroup.name]);
+  }, [payoutScheduleData]);
 
-  // Current payout recipient
-  const currentRecipient = payoutSchedule?.find((e) => e.status === "current");
+  // Stats
+  const totalCollected = contributions
+    .filter((c) => c.status === "paid")
+    .reduce((s, c) => s + Number(c.amount), 0);
+  const avgTrust = memberList.length
+    ? Math.round(memberList.reduce((s, m) => s + m.trust_score, 0) / memberList.length)
+    : 0;
+  const payoutAmount = expectedAmount * members.length;
 
-  // Check if all members have paid for current cycle
-  const allMembersPaid = useMemo(() => {
-    if (!payoutSchedule) return false;
-    return allMembers.every((m) => {
-      const latestPayment = m.payments[0];
-      return latestPayment && latestPayment.status === "paid";
-    });
-  }, [allMembers, payoutSchedule]);
+  const canGeneratePayout = members.length >= 2 && !group.payout_schedule_generated;
+  const allMembersPaid = memberList.length > 0 && memberList.every((m) => m.contributionStatus === "paid");
+  const currentCycleCompleted = payoutHistoryData.some((r) => r.cycle_month === currentPayoutMonth);
+  const unpaidMembers = memberList.filter((m) => m.contributionStatus !== "paid");
+  const paidOutUserIds = new Set(payoutHistoryData.map((r) => r.recipient_id));
 
-  // Check if current cycle payout already completed
-  const currentCycleCompleted = payoutHistory.some((r) => r.cycleMonth === currentPayoutMonth);
+  const payoutReady = payoutScheduleData.length > 0 && currentEntry && allMembersPaid && !currentCycleCompleted;
+  const showPayoutWarning = payoutScheduleData.length > 0 && currentEntry && !allMembersPaid && !currentCycleCompleted && unpaidMembers.length > 0;
+  const cycleFullyCompleted = payoutScheduleData.length > 0 && !currentEntry && payoutHistoryData.length > 0;
 
-  // Unpaid members for warning
-  const unpaidMembers = useMemo(() => {
-    if (!payoutSchedule) return [];
-    return allMembers.filter((m) => {
-      const latestPayment = m.payments[0];
-      return !latestPayment || latestPayment.status !== "paid";
-    });
-  }, [allMembers, payoutSchedule]);
-
-  // Days until payout (mock)
-  const payoutDay = latestGroup.payoutDay ?? 15;
+  // Payout countdown
+  const payoutDay = group.payout_day ?? 15;
   const now = new Date();
   const nextPayoutDate = new Date(now.getFullYear(), now.getMonth(), payoutDay);
   if (nextPayoutDate <= now) nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1);
   const daysUntilPayout = Math.ceil((nextPayoutDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-  // Complete payout execution
+  const handleGeneratePayout = useCallback(() => {
+    const memberData = members.map((m) => ({
+      userId: m.user_id,
+      username: m.profiles?.username ?? "Unknown",
+    }));
+    generatePayout.mutate({
+      groupId: group.id,
+      members: memberData,
+      cycleLength,
+    });
+  }, [members, cycleLength, group.id, generatePayout]);
+
   const handleCompletePayout = useCallback(() => {
-    if (!payoutSchedule || !currentRecipient) return;
-
-    // Step 1: Record payout
-    const record: PayoutRecord = {
+    if (!currentEntry) return;
+    completePayout.mutate({
+      groupId: group.id,
+      recipientId: currentEntry.user_id,
       cycleMonth: currentPayoutMonth,
-      recipientName: currentRecipient.memberName,
       amount: payoutAmount,
-      datePaid: formatDate(),
-      status: "Completed",
-    };
-    setPayoutHistory((prev) => [...prev, record]);
-
-    // Track paid out members
-    setPaidOutMembers((prev) => new Set(prev).add(currentRecipient.memberName));
-
-    // Step 2 & 3: Update timeline - mark current as completed, next as current
-    setPayoutSchedule((prev) => {
-      if (!prev) return prev;
-      return prev.map((entry) => {
-        if (entry.month === currentPayoutMonth) {
-          return { ...entry, status: "completed" as const };
-        }
-        if (entry.month === currentPayoutMonth + 1) {
-          return { ...entry, status: "current" as const };
-        }
-        return entry;
-      });
+      memberUserIds: members.map((m) => m.user_id),
+      nextCycleMonth: currentPayoutMonth + 1,
     });
+  }, [currentEntry, group.id, currentPayoutMonth, payoutAmount, members, completePayout]);
 
-    // Step 4: Reset member contribution statuses for new cycle
-    setMembersMap((prev) => {
-      const updated = { ...prev };
-      for (const name of memberNames) {
-        if (updated[name]) {
-          updated[name] = {
-            ...updated[name],
-            payments: [
-              { date: formatDate(), amount: 0, status: "pending" as const },
-              ...updated[name].payments,
-            ].slice(0, 10),
-          };
-        }
-      }
-      return updated;
-    });
+  const handleMarkPaid = useCallback(
+    (contributionId: string, amount: number) => {
+      updateContribution.mutate({ contributionId, status: "paid", amount });
+    },
+    [updateContribution]
+  );
 
-    // Step 5: Advance cycle month
-    setCurrentPayoutMonth((prev) => prev + 1);
+  const handleMarkMissed = useCallback(
+    (contributionId: string) => {
+      updateContribution.mutate({ contributionId, status: "missed" });
+    },
+    [updateContribution]
+  );
 
-    toast.success("Payout completed!", {
-      description: `₦${payoutAmount.toLocaleString()} released to ${currentRecipient.memberName}.`,
-    });
-  }, [payoutSchedule, currentRecipient, currentPayoutMonth, payoutAmount, memberNames]);
-
-  // Determine payout button state
-  const payoutReady = payoutSchedule && currentRecipient && allMembersPaid && !currentCycleCompleted;
-  const showPayoutWarning = payoutSchedule && currentRecipient && !allMembersPaid && !currentCycleCompleted && unpaidMembers.length > 0;
-  const cycleFullyCompleted = payoutSchedule && !currentRecipient && payoutHistory.length > 0;
+  const handleAddMember = useCallback(
+    (userId: string) => {
+      addMember.mutate(userId);
+    },
+    [addMember]
+  );
 
   return (
     <motion.div
@@ -214,7 +178,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
               </div>
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Group</span>
             </div>
-            <p className="text-xl font-extrabold text-foreground truncate">{latestGroup.name}</p>
+            <p className="text-xl font-extrabold text-foreground truncate">{group.group_name}</p>
             <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
               <Calendar className="h-3 w-3" />
               <span>{cycleLength}-month cycle · ₦{expectedAmount.toLocaleString()}/mo</span>
@@ -222,7 +186,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
             <div className="mt-3 flex items-center gap-1.5">
               <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
                 <Users className="h-3 w-3" />
-                {memberNames.length} members
+                {members.length} members
               </span>
             </div>
           </CardContent>
@@ -242,10 +206,10 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
             <div className="mt-3 space-y-1">
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                 <span>Collection progress</span>
-                <span className="font-bold">{Math.min(100, Math.round((totalCollected / Math.max(expectedAmount * memberNames.length, 1)) * 100))}%</span>
+                <span className="font-bold">{Math.min(100, Math.round((totalCollected / Math.max(expectedAmount * members.length, 1)) * 100))}%</span>
               </div>
               <Progress
-                value={Math.min(100, Math.round((totalCollected / Math.max(expectedAmount * memberNames.length, 1)) * 100))}
+                value={Math.min(100, Math.round((totalCollected / Math.max(expectedAmount * members.length, 1)) * 100))}
                 className="h-1.5 rounded-full bg-secondary [&>div]:bg-success"
               />
             </div>
@@ -291,7 +255,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
         })()}
 
         {/* Next Payout / Active Members */}
-        {payoutSchedule && currentRecipient ? (
+        {payoutScheduleData.length > 0 && currentEntry ? (
           <Card className="group relative overflow-hidden rounded-2xl border-border/50 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
             <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
             <CardContent className="p-5">
@@ -304,17 +268,16 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
               <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
                   <AvatarFallback className="bg-accent text-xs font-bold text-accent-foreground">
-                    {currentRecipient.memberName.slice(0, 2).toUpperCase()}
+                    {(currentEntry.profiles?.username ?? "??").slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="text-sm font-extrabold text-foreground truncate">{currentRecipient.memberName}</p>
+                  <p className="text-sm font-extrabold text-foreground truncate">{currentEntry.profiles?.username ?? "Unknown"}</p>
                   <p className="text-lg font-extrabold text-primary">₦{payoutAmount.toLocaleString()}</p>
                 </div>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">Cycle Month: {currentPayoutMonth}</p>
 
-              {/* Status & payout action */}
               {currentCycleCompleted ? (
                 <div className="mt-3 flex items-center gap-1.5 text-xs text-success font-semibold">
                   <CheckCircle2 className="h-3 w-3" />
@@ -326,11 +289,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                     <span>Pending contributions detected. All members must complete payment before payout.</span>
                   </div>
-                  <Button
-                    disabled
-                    className="w-full gap-2 rounded-xl font-bold shadow-md opacity-50 cursor-not-allowed"
-                    size="sm"
-                  >
+                  <Button disabled className="w-full gap-2 rounded-xl font-bold shadow-md opacity-50 cursor-not-allowed" size="sm">
                     <CheckCircle2 className="h-4 w-4" />
                     Complete Payout
                   </Button>
@@ -377,18 +336,18 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Active Members</span>
               </div>
-              <p className="text-2xl font-extrabold text-foreground">{activeCount}</p>
+              <p className="text-2xl font-extrabold text-foreground">{members.length}</p>
               <div className="mt-3 flex items-center -space-x-2">
-                {allMembers.slice(0, 5).map((m) => (
-                  <Avatar key={m.name} className="h-7 w-7 border-2 border-card">
+                {memberList.slice(0, 5).map((m) => (
+                  <Avatar key={m.id} className="h-7 w-7 border-2 border-card">
                     <AvatarFallback className="bg-accent text-[9px] font-bold text-accent-foreground">
-                      {m.name.slice(0, 2).toUpperCase()}
+                      {m.username.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 ))}
-                {allMembers.length > 5 && (
+                {members.length > 5 && (
                   <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-muted text-[9px] font-bold text-muted-foreground">
-                    +{allMembers.length - 5}
+                    +{members.length - 5}
                   </div>
                 )}
               </div>
@@ -408,16 +367,17 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
                   Ready to Generate Payouts
                 </h3>
                 <p className="mt-1 text-sm text-muted-foreground max-w-md">
-                  Generate a fair payout order for all {memberNames.length} members in this group.
+                  Generate a fair payout order for all {members.length} members in this group.
                 </p>
               </div>
               <Button
                 size="lg"
                 onClick={handleGeneratePayout}
+                disabled={generatePayout.isPending}
                 className="gap-2 rounded-xl font-bold text-base shadow-md hover:shadow-lg transition-shadow min-h-[48px]"
               >
                 <Shuffle className="h-5 w-5" />
-                Implement Payout Schedule
+                {generatePayout.isPending ? "Generating…" : "Implement Payout Schedule"}
               </Button>
             </CardContent>
           </Card>
@@ -437,30 +397,32 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
             </CardHeader>
             <CardContent className="space-y-3">
               <MemberSearchBar
-                existingMembers={memberNames}
+                groupId={group.id}
+                existingMemberIds={members.map((m) => m.user_id)}
                 onAddMember={handleAddMember}
               />
-              {allMembers.map((member) => (
+              {memberList.map((member) => (
                 <MemberCard
-                  key={member.name}
+                  key={member.id}
                   member={member}
                   expectedAmount={expectedAmount}
-                  isExpanded={expandedMember === member.name}
+                  isExpanded={expandedMember === member.id}
                   onToggle={() =>
-                    setExpandedMember((prev) => (prev === member.name ? null : member.name))
+                    setExpandedMember((prev) => (prev === member.id ? null : member.id))
                   }
-                  onUpdate={handleUpdateMember}
-                  hasReceivedPayout={paidOutMembers.has(member.name)}
-                  isUnpaid={showPayoutWarning ? unpaidMembers.some((u) => u.name === member.name) : false}
+                  onMarkPaid={handleMarkPaid}
+                  onMarkMissed={handleMarkMissed}
+                  hasReceivedPayout={paidOutUserIds.has(member.user_id)}
+                  isUnpaid={showPayoutWarning ? member.contributionStatus !== "paid" : false}
                 />
               ))}
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Payout Timeline (replaces Trust Score Insights) */}
+        {/* Payout Timeline */}
         <motion.div variants={fadeUp} className="space-y-4 sm:space-y-6">
-          {payoutSchedule ? (
+          {payoutEntries.length > 0 ? (
             <Card className="rounded-2xl border-border/50 shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
@@ -472,7 +434,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
                 </p>
               </CardHeader>
               <CardContent>
-                <PayoutTimeline entries={payoutSchedule} />
+                <PayoutTimeline entries={payoutEntries} />
               </CardContent>
             </Card>
           ) : (
@@ -489,7 +451,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
                     <Shuffle className="h-6 w-6 text-primary" />
                   </div>
                   <p className="text-sm text-muted-foreground max-w-[200px]">
-                    {memberNames.length < 2
+                    {members.length < 2
                       ? "Add at least 2 members to generate a payout schedule."
                       : "Click the button above to generate and lock a payout order."}
                   </p>
@@ -499,7 +461,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
           )}
 
           {/* Payout History */}
-          {payoutHistory.length > 0 && (
+          {payoutHistoryData.length > 0 && (
             <Card className="rounded-2xl border-border/50 shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
@@ -508,7 +470,15 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <PayoutHistory records={payoutHistory} />
+                <PayoutHistory
+                  records={payoutHistoryData.map((r) => ({
+                    cycleMonth: r.cycle_month,
+                    recipientName: r.profiles?.username ?? "Unknown",
+                    amount: r.amount,
+                    datePaid: new Date(r.paid_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+                    status: "Completed" as const,
+                  }))}
+                />
               </CardContent>
             </Card>
           )}
@@ -516,14 +486,14 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
       </div>
 
       {/* Confirm Payout Dialog */}
-      {currentRecipient && (
+      {currentEntry && (
         <ConfirmPayoutDialog
           open={confirmDialogOpen}
           onOpenChange={setConfirmDialogOpen}
-          recipientName={currentRecipient.memberName}
+          recipientName={currentEntry.profiles?.username ?? "Unknown"}
           payoutAmount={payoutAmount}
           cycleMonth={currentPayoutMonth}
-          memberCount={memberNames.length}
+          memberCount={members.length}
           onConfirm={handleCompletePayout}
         />
       )}
