@@ -164,7 +164,7 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
               </div>
 
               {/* Admin Actions */}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 [&_button]:min-h-[44px] sm:[&_button]:min-h-0">
                 <Button
                   size="sm"
                   variant="outline"
