@@ -19,6 +19,7 @@ import {
   useCompletePayout,
   useUpdateContribution,
   useAddMember,
+  useUpdateDebt,
   type GroupRow,
 } from "@/hooks/useSupabase";
 import MemberCard from "./MemberCard";
