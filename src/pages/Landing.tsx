@@ -141,7 +141,7 @@ const Landing = () => {
             {[
               { icon: Users, title: "Create Your Group", text: "Start a cooperative savings circle in minutes." },
               { icon: ClipboardList, title: "Track Contributions", text: "Every member's payment is recorded and visible to the group." },
-              { icon: CalendarClock, title: "Automate Payouts", text: "Payout schedules are generated automatically, no disputes." },
+              { icon: ShieldCheck, title: "Trust Score Insights", text: "See which members are most reliable and spot potential risks early, improving group trust and reducing disputes." },
               { icon: BadgeCheck, title: "Build Trust & History", text: "Members earn a digital trust score, enabling future access to financial services." },
             ].map((step) => (
               <div key={step.title} className="rounded-2xl border border-border bg-background p-8 text-center shadow-sm transition hover:shadow-md">
