@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import type { GroupData } from "./CreateGroupDialog";
 import MemberCard from "./MemberCard";
+import MemberSearchBar from "./MemberSearchBar";
 import { type MemberData, createMember, getTrustTier } from "@/lib/members";
 
 interface GroupDashboardProps {
@@ -42,11 +43,17 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
     return map;
   });
 
-  const allMemberNames = useMemo(() => ["You", ...latestGroup.members], [latestGroup.members]);
-  const allMembers = allMemberNames.map((n) => membersMap[n]).filter(Boolean);
+  const [memberNames, setMemberNames] = useState<string[]>(() => ["You", ...latestGroup.members]);
+  const allMembers = memberNames.map((n) => membersMap[n]).filter(Boolean);
 
   const handleUpdateMember = (updated: MemberData) => {
     setMembersMap((prev) => ({ ...prev, [updated.name]: updated }));
+  };
+
+  const handleAddMember = (username: string) => {
+    if (membersMap[username]) return;
+    setMembersMap((prev) => ({ ...prev, [username]: createMember(username) }));
+    setMemberNames((prev) => [...prev, username]);
   };
 
   // Computed stats
@@ -55,13 +62,13 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
     ? Math.round(allMembers.reduce((s, m) => s + m.trustScore, 0) / allMembers.length)
     : 0;
   const paidCount = allMembers.filter((m) => m.payments.length > 0 && m.payments[0]?.status === "paid").length;
-  const activeCount = allMembers.length;
+  const activeCount = memberNames.length;
 
   // Trust insights
   const trustInsights = [
     { name: "Overall Trust", score: avgTrust, trend: avgTrust >= 80 ? "up" as const : "down" as const },
     { name: "Payment Reliability", score: allMembers.length ? Math.round((paidCount / allMembers.length) * 100) : 0, trend: paidCount >= allMembers.length / 2 ? "up" as const : "down" as const },
-    { name: "Active Members", score: Math.round((activeCount / Math.max(allMemberNames.length, 1)) * 100), trend: "up" as const },
+    { name: "Active Members", score: Math.round((activeCount / Math.max(memberNames.length, 1)) * 100), trend: "up" as const },
   ];
 
   return (
@@ -82,7 +89,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
               <div className="mt-3 flex items-center justify-between">
                 <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
                   <Users className="h-3 w-3" />
-                  {group.members.length + 1}
+                  {memberNames.length}
                 </span>
                 <span className="text-xs font-medium text-muted-foreground">
                   {scheduleLabels[group.schedule]} · ${expectedAmount}
@@ -140,7 +147,11 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
                 Members
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-3">
+              <MemberSearchBar
+                existingMembers={memberNames}
+                onAddMember={handleAddMember}
+              />
               {allMembers.map((member) => (
                 <MemberCard
                   key={member.name}
