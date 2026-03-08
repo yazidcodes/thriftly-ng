@@ -120,13 +120,20 @@ const Landing = () => {
               text: "Know exactly how much is in the group pot and who is next to collect, all at a glance."
             }].
             map((f) =>
-            <div key={f.title} className="rounded-2xl border border-border bg-background p-8 text-center shadow-sm transition hover:shadow-md">
+            <motion.div
+              key={f.title}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.5, delay: i * 0.15 }}
+              className="rounded-2xl border border-border bg-background p-8 text-center shadow-sm transition hover:shadow-md"
+            >
                 <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-accent">
                   <f.icon className="h-7 w-7 text-primary" />
                 </div>
                 <h3 className="mb-2 text-lg font-bold text-foreground">{f.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">{f.text}</p>
-              </div>
+              </motion.div>
             )}
           </div>
         </div>
