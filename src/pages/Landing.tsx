@@ -1,4 +1,4 @@
-import { PieChart, ShieldCheck, Wallet, ArrowRight, Users, ClipboardList, CalendarClock, BadgeCheck } from "lucide-react";
+import { PieChart, ShieldCheck, Wallet, ArrowRight, Users, ClipboardList, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
