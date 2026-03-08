@@ -101,7 +101,7 @@ const Landing = () => {
             </p>
           </div>
           
-          <div className="grid gap-8 sm:grid-cols-3">
+          <div className="grid gap-8 sm:grid-cols-3 my-[50px]">
             {[
             {
               icon: PieChart,
@@ -139,19 +139,19 @@ const Landing = () => {
           </h2>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: Users, title: "Create Your Group", text: "Start a cooperative savings circle in minutes." },
-              { icon: ClipboardList, title: "Track Contributions", text: "Every member's payment is recorded and visible to the group." },
-              { icon: ShieldCheck, title: "Trust Score Insights", text: "See which members are most reliable and spot potential risks early, improving group trust and reducing disputes." },
-              { icon: BadgeCheck, title: "Build Trust & History", text: "Members earn a digital trust score, enabling future access to financial services." },
-            ].map((step) => (
-              <div key={step.title} className="rounded-2xl border border-border bg-background p-8 text-center shadow-sm transition hover:shadow-md">
+            { icon: Users, title: "Create Your Group", text: "Start a cooperative savings circle in minutes." },
+            { icon: ClipboardList, title: "Track Contributions", text: "Every member's payment is recorded and visible to the group." },
+            { icon: ShieldCheck, title: "Trust Score Insights", text: "See which members are most reliable and spot potential risks early, improving group trust and reducing disputes." },
+            { icon: BadgeCheck, title: "Build Trust & History", text: "Members earn a digital trust score, enabling future access to financial services." }].
+            map((step) =>
+            <div key={step.title} className="rounded-2xl border border-border bg-background p-8 text-center shadow-sm transition hover:shadow-md">
                 <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-accent">
                   <step.icon className="h-7 w-7 text-primary" />
                 </div>
                 <h3 className="mb-2 text-lg font-bold text-foreground">{step.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">{step.text}</p>
               </div>
-            ))}
+            )}
           </div>
           <div className="mt-12 text-center">
             <p className="mb-6 text-lg text-muted-foreground">Get started today and bring your cooperative savings online.</p>
