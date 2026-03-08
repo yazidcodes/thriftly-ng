@@ -135,7 +135,7 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
             className="overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-t border-border/50 px-4 pb-4 pt-3 space-y-4">
+            <div className="border-t border-border/50 px-3 pb-4 pt-3 space-y-4 sm:px-4">
               {/* Trust Score */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
