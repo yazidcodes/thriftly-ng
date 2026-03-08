@@ -3,11 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
-import Dashboard from "./pages/Dashboard";
-import Members from "./pages/Members";
-import History from "./pages/History";
 import NotFound from "./pages/NotFound";
-import BottomNav from "./components/BottomNav";
 
 const queryClient = new QueryClient();
 
@@ -18,12 +14,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/members" element={<Members />} />
-          <Route path="/history" element={<History />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-        <BottomNav />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

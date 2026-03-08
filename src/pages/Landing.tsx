@@ -18,7 +18,7 @@ const Landing = () => {
           <div className="flex items-center gap-2 sm:gap-6">
             <button onClick={() => scrollTo("features")} className="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:block">Features</button>
             <button onClick={() => scrollTo("how-it-works")} className="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:block">How it Works</button>
-            <Button size="sm" onClick={() => navigate("/dashboard")} className="font-semibold">
+            <Button size="sm" className="font-semibold">
               Login / Get Started
             </Button>
           </div>
@@ -36,7 +36,7 @@ const Landing = () => {
             The easiest way for market admins in Zaria and beyond to track daily Ajo and Esusu contributions. Zero math errors, total transparency, and powered by voice.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
-            <Button size="lg" className="gap-2 text-base font-bold shadow-lg" onClick={() => navigate("/dashboard")}>
+            <Button size="lg" className="gap-2 text-base font-bold shadow-lg">
               Open Free Ledger <ArrowRight className="h-5 w-5" />
             </Button>
             <Button size="lg" variant="outline" className="text-base font-bold" onClick={() => scrollTo("how-it-works")}>
@@ -138,7 +138,7 @@ const Landing = () => {
       <section className="bg-primary py-16 text-center text-primary-foreground sm:py-20">
         <h2 className="mb-3 text-3xl font-extrabold sm:text-4xl">Ready to go digital?</h2>
         <p className="mb-8 text-lg opacity-90">Start your free ledger in under a minute.</p>
-        <Button size="lg" variant="secondary" className="text-base font-bold" onClick={() => navigate("/dashboard")}>
+        <Button size="lg" variant="secondary" className="text-base font-bold">
           Open Free Ledger <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </section>
