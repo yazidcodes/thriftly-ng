@@ -264,7 +264,7 @@ const GroupDetails = () => {
 
         {/* Main grid */}
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
-          {/* Contributions Table */}
+          {/* Contributions */}
           <motion.div variants={fadeUp} className="lg:col-span-2">
             <Card className="rounded-2xl border-border/50 shadow-sm">
               <CardHeader className="pb-3">
@@ -277,75 +277,133 @@ const GroupDetails = () => {
                 </p>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Member</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Paid</TableHead>
-                      <TableHead className="text-right">Debt</TableHead>
-                      <TableHead className="text-right">Trust</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {memberList.map((m) => {
-                      const isMe = m.user_id === user?.id;
-                      return (
-                        <TableRow
-                          key={m.id}
-                          className={isMe ? "bg-accent/40 font-medium" : ""}
-                        >
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-7 w-7">
-                                <AvatarFallback className="bg-accent text-[9px] font-bold text-accent-foreground">
-                                  {m.username.slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-foreground truncate">
-                                  {m.username}
-                                  {isMe && (
-                                    <span className="ml-1.5 text-[10px] font-bold text-primary">(You)</span>
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={`text-[10px] font-bold border-0 ${statusColor(m.contributionStatus)}`}>
-                              {m.contributionStatus === "paid" && <CheckCircle2 className="mr-1 h-3 w-3" />}
-                              {m.contributionStatus === "missed" && <AlertTriangle className="mr-1 h-3 w-3" />}
-                              {m.contributionStatus === "pending" && <Clock className="mr-1 h-3 w-3" />}
-                              {m.contributionStatus.charAt(0).toUpperCase() + m.contributionStatus.slice(1)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right text-sm font-semibold">
-                            ₦{m.contributionAmount.toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {m.debtBalance > 0 ? (
-                              <span className="text-sm font-semibold text-destructive">
-                                ₦{m.debtBalance.toLocaleString()}
-                              </span>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className={`text-sm font-semibold ${
-                              m.trust_score >= 80 ? "text-success" :
-                              m.trust_score >= 60 ? "text-warning" :
-                              "text-destructive"
+                {/* Mobile card layout */}
+                <div className="space-y-3 sm:hidden">
+                  {memberList.map((m) => {
+                    const isMe = m.user_id === user?.id;
+                    return (
+                      <div
+                        key={m.id}
+                        className={`rounded-xl border p-3 ${
+                          isMe ? "border-primary/30 bg-accent/40" : "border-border/50 bg-card"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 mb-2.5">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="bg-accent text-[10px] font-bold text-accent-foreground">
+                              {m.username.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-foreground truncate">
+                              {m.username}
+                              {isMe && <span className="ml-1 text-[10px] font-bold text-primary">(You)</span>}
+                            </p>
+                          </div>
+                          <Badge className={`text-[10px] font-bold border-0 shrink-0 ${statusColor(m.contributionStatus)}`}>
+                            {m.contributionStatus === "paid" && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                            {m.contributionStatus === "missed" && <AlertTriangle className="mr-1 h-3 w-3" />}
+                            {m.contributionStatus === "pending" && <Clock className="mr-1 h-3 w-3" />}
+                            {m.contributionStatus.charAt(0).toUpperCase() + m.contributionStatus.slice(1)}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div>
+                            <p className="text-[10px] text-muted-foreground mb-0.5">Paid</p>
+                            <p className="text-sm font-bold text-foreground">₦{m.contributionAmount.toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground mb-0.5">Debt</p>
+                            <p className={`text-sm font-bold ${m.debtBalance > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                              {m.debtBalance > 0 ? `₦${m.debtBalance.toLocaleString()}` : "—"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground mb-0.5">Trust</p>
+                            <p className={`text-sm font-bold ${
+                              m.trust_score >= 80 ? "text-success" : m.trust_score >= 60 ? "text-warning" : "text-destructive"
                             }`}>
                               {m.trust_score}%
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop table layout */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Member</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Paid</TableHead>
+                        <TableHead className="text-right">Debt</TableHead>
+                        <TableHead className="text-right">Trust</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {memberList.map((m) => {
+                        const isMe = m.user_id === user?.id;
+                        return (
+                          <TableRow
+                            key={m.id}
+                            className={isMe ? "bg-accent/40 font-medium" : ""}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-7 w-7">
+                                  <AvatarFallback className="bg-accent text-[9px] font-bold text-accent-foreground">
+                                    {m.username.slice(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-foreground truncate">
+                                    {m.username}
+                                    {isMe && (
+                                      <span className="ml-1.5 text-[10px] font-bold text-primary">(You)</span>
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`text-[10px] font-bold border-0 ${statusColor(m.contributionStatus)}`}>
+                                {m.contributionStatus === "paid" && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                                {m.contributionStatus === "missed" && <AlertTriangle className="mr-1 h-3 w-3" />}
+                                {m.contributionStatus === "pending" && <Clock className="mr-1 h-3 w-3" />}
+                                {m.contributionStatus.charAt(0).toUpperCase() + m.contributionStatus.slice(1)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right text-sm font-semibold">
+                              ₦{m.contributionAmount.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {m.debtBalance > 0 ? (
+                                <span className="text-sm font-semibold text-destructive">
+                                  ₦{m.debtBalance.toLocaleString()}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className={`text-sm font-semibold ${
+                                m.trust_score >= 80 ? "text-success" :
+                                m.trust_score >= 60 ? "text-warning" :
+                                "text-destructive"
+                              }`}>
+                                {m.trust_score}%
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
