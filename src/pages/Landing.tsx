@@ -19,7 +19,7 @@ const Landing = () => {
           <div className="flex items-center gap-2 sm:gap-6">
             <button onClick={() => scrollTo("features")} className="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:block">Features</button>
             <button onClick={() => scrollTo("how-it-works")} className="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:block">How it Works</button>
-            <Button size="sm" className="font-semibold" onClick={() => navigate("/dashboard")}>
+            <Button size="sm" className="font-semibold" onClick={() => navigate("/signin")}>
               Login / Get Started
             </Button>
           </div>
