@@ -478,3 +478,30 @@ export function useSearchProfiles(query: string, excludeIds: string[]) {
     enabled: query.trim().length > 0,
   });
 }
+
+export function useUpdateDebt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      groupId,
+      userId,
+      newDebtBalance,
+    }: {
+      groupId: string;
+      userId: string;
+      newDebtBalance: number;
+    }) => {
+      const { error } = await supabase
+        .from("group_members")
+        .update({ debt_balance: Math.max(0, newDebtBalance) })
+        .eq("group_id", groupId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["group_members"] });
+      toast.success("Debt balance updated!");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
