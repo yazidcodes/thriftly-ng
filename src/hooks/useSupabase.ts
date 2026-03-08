@@ -21,6 +21,7 @@ export interface GroupMemberRow {
   user_id: string;
   joined_at: string;
   trust_score: number;
+  debt_balance: number;
   profiles?: { username: string; email: string } | null;
 }
 
