@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import {
   Users, TrendingUp, ShieldCheck, DollarSign, Calendar, Shuffle,
-  AlertTriangle, CheckCircle2, Timer,
+  AlertTriangle, CheckCircle2, Timer, History,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -14,7 +14,9 @@ import type { GroupData } from "./CreateGroupDialog";
 import MemberCard from "./MemberCard";
 import MemberSearchBar from "./MemberSearchBar";
 import PayoutTimeline, { type PayoutEntry } from "./PayoutTimeline";
-import { type MemberData, createMember, getTrustTier, getTrustLabel } from "@/lib/members";
+import ConfirmPayoutDialog from "./ConfirmPayoutDialog";
+import PayoutHistory, { type PayoutRecord } from "./PayoutHistory";
+import { type MemberData, createMember, getTrustTier, getTrustLabel, formatDate } from "@/lib/members";
 
 interface GroupDashboardProps {
   groups: GroupData[];
@@ -61,6 +63,9 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
   // Payout state
   const [payoutSchedule, setPayoutSchedule] = useState<PayoutEntry[] | null>(null);
   const [currentPayoutMonth, setCurrentPayoutMonth] = useState(1);
+  const [payoutHistory, setPayoutHistory] = useState<PayoutRecord[]>([]);
+  const [paidOutMembers, setPaidOutMembers] = useState<Set<string>>(new Set());
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   const handleUpdateMember = (updated: MemberData) => {
     setMembersMap((prev) => ({ ...prev, [updated.name]: updated }));
@@ -101,12 +106,94 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
   // Current payout recipient
   const currentRecipient = payoutSchedule?.find((e) => e.status === "current");
 
+  // Check if all members have paid for current cycle
+  const allMembersPaid = useMemo(() => {
+    if (!payoutSchedule) return false;
+    return allMembers.every((m) => {
+      const latestPayment = m.payments[0];
+      return latestPayment && latestPayment.status === "paid";
+    });
+  }, [allMembers, payoutSchedule]);
+
+  // Check if current cycle payout already completed
+  const currentCycleCompleted = payoutHistory.some((r) => r.cycleMonth === currentPayoutMonth);
+
+  // Unpaid members for warning
+  const unpaidMembers = useMemo(() => {
+    if (!payoutSchedule) return [];
+    return allMembers.filter((m) => {
+      const latestPayment = m.payments[0];
+      return !latestPayment || latestPayment.status !== "paid";
+    });
+  }, [allMembers, payoutSchedule]);
+
   // Days until payout (mock)
   const payoutDay = latestGroup.payoutDay ?? 15;
   const now = new Date();
   const nextPayoutDate = new Date(now.getFullYear(), now.getMonth(), payoutDay);
   if (nextPayoutDate <= now) nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1);
   const daysUntilPayout = Math.ceil((nextPayoutDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  // Complete payout execution
+  const handleCompletePayout = useCallback(() => {
+    if (!payoutSchedule || !currentRecipient) return;
+
+    // Step 1: Record payout
+    const record: PayoutRecord = {
+      cycleMonth: currentPayoutMonth,
+      recipientName: currentRecipient.memberName,
+      amount: payoutAmount,
+      datePaid: formatDate(),
+      status: "Completed",
+    };
+    setPayoutHistory((prev) => [...prev, record]);
+
+    // Track paid out members
+    setPaidOutMembers((prev) => new Set(prev).add(currentRecipient.memberName));
+
+    // Step 2 & 3: Update timeline - mark current as completed, next as current
+    setPayoutSchedule((prev) => {
+      if (!prev) return prev;
+      return prev.map((entry) => {
+        if (entry.month === currentPayoutMonth) {
+          return { ...entry, status: "completed" as const };
+        }
+        if (entry.month === currentPayoutMonth + 1) {
+          return { ...entry, status: "current" as const };
+        }
+        return entry;
+      });
+    });
+
+    // Step 4: Reset member contribution statuses for new cycle
+    setMembersMap((prev) => {
+      const updated = { ...prev };
+      for (const name of memberNames) {
+        if (updated[name]) {
+          updated[name] = {
+            ...updated[name],
+            payments: [
+              { date: formatDate(), amount: 0, status: "pending" as const },
+              ...updated[name].payments,
+            ].slice(0, 10),
+          };
+        }
+      }
+      return updated;
+    });
+
+    // Step 5: Advance cycle month
+    setCurrentPayoutMonth((prev) => prev + 1);
+
+    toast.success("Payout completed!", {
+      description: `₦${payoutAmount.toLocaleString()} released to ${currentRecipient.memberName}.`,
+    });
+  }, [payoutSchedule, currentRecipient, currentPayoutMonth, payoutAmount, memberNames]);
+
+  // Determine payout button state
+  const payoutReady = payoutSchedule && currentRecipient && allMembersPaid && !currentCycleCompleted;
+  const showPayoutWarning = payoutSchedule && currentRecipient && !allMembersPaid && !currentCycleCompleted && unpaidMembers.length > 0;
+  const cycleFullyCompleted = payoutSchedule && !currentRecipient && payoutHistory.length > 0;
 
   return (
     <motion.div
@@ -225,10 +312,59 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
                   <p className="text-lg font-extrabold text-primary">₦{payoutAmount.toLocaleString()}</p>
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Timer className="h-3 w-3" />
-                <span className="font-semibold">Payout in {daysUntilPayout} days</span>
-              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Cycle Month: {currentPayoutMonth}</p>
+
+              {/* Status & payout action */}
+              {currentCycleCompleted ? (
+                <div className="mt-3 flex items-center gap-1.5 text-xs text-success font-semibold">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Payout for this cycle has already been completed.
+                </div>
+              ) : showPayoutWarning ? (
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-start gap-1.5 text-xs text-warning font-semibold">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span>Pending contributions detected. All members must complete payment before payout.</span>
+                  </div>
+                  <Button
+                    disabled
+                    className="w-full gap-2 rounded-xl font-bold shadow-md opacity-50 cursor-not-allowed"
+                    size="sm"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Complete Payout
+                  </Button>
+                </div>
+              ) : payoutReady ? (
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs text-success font-semibold">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Status: Ready for Payout
+                  </div>
+                  <Button
+                    onClick={() => setConfirmDialogOpen(true)}
+                    className="w-full gap-2 rounded-xl font-bold shadow-md hover:shadow-lg transition-shadow"
+                    size="sm"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Complete Payout
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Timer className="h-3 w-3" />
+                  <span className="font-semibold">Payout in {daysUntilPayout} days</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : cycleFullyCompleted ? (
+          <Card className="group relative overflow-hidden rounded-2xl border-border/50 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+            <div className="absolute inset-x-0 top-0 h-1 bg-success" />
+            <CardContent className="p-5 flex flex-col items-center justify-center text-center gap-2">
+              <CheckCircle2 className="h-8 w-8 text-success" />
+              <p className="text-sm font-extrabold text-foreground">All Payouts Complete</p>
+              <p className="text-xs text-muted-foreground">The full cycle has been completed.</p>
             </CardContent>
           </Card>
         ) : (
@@ -288,7 +424,6 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
         </motion.div>
       )}
 
-
       {/* Main grid */}
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Members */}
@@ -315,6 +450,8 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
                     setExpandedMember((prev) => (prev === member.name ? null : member.name))
                   }
                   onUpdate={handleUpdateMember}
+                  hasReceivedPayout={paidOutMembers.has(member.name)}
+                  isUnpaid={showPayoutWarning ? unpaidMembers.some((u) => u.name === member.name) : false}
                 />
               ))}
             </CardContent>
@@ -322,7 +459,7 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
         </motion.div>
 
         {/* Payout Timeline (replaces Trust Score Insights) */}
-        <motion.div variants={fadeUp}>
+        <motion.div variants={fadeUp} className="space-y-4 sm:space-y-6">
           {payoutSchedule ? (
             <Card className="rounded-2xl border-border/50 shadow-sm">
               <CardHeader className="pb-3">
@@ -360,8 +497,36 @@ const GroupDashboard = ({ groups }: GroupDashboardProps) => {
               </CardContent>
             </Card>
           )}
+
+          {/* Payout History */}
+          {payoutHistory.length > 0 && (
+            <Card className="rounded-2xl border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+                  <History className="h-4 w-4 text-primary" />
+                  Payout History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PayoutHistory records={payoutHistory} />
+              </CardContent>
+            </Card>
+          )}
         </motion.div>
       </div>
+
+      {/* Confirm Payout Dialog */}
+      {currentRecipient && (
+        <ConfirmPayoutDialog
+          open={confirmDialogOpen}
+          onOpenChange={setConfirmDialogOpen}
+          recipientName={currentRecipient.memberName}
+          payoutAmount={payoutAmount}
+          cycleMonth={currentPayoutMonth}
+          memberCount={memberNames.length}
+          onConfirm={handleCompletePayout}
+        />
+      )}
     </motion.div>
   );
 };
