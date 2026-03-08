@@ -19,6 +19,7 @@ import {
   useCompletePayout,
   useUpdateContribution,
   useAddMember,
+  useUpdateDebt,
   type GroupRow,
 } from "@/hooks/useSupabase";
 import MemberCard from "./MemberCard";
@@ -54,6 +55,7 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
   const completePayout = useCompletePayout();
   const updateContribution = useUpdateContribution();
   const addMember = useAddMember(group.id);
+  const updateDebt = useUpdateDebt();
 
   const expectedAmount = group.monthly_contribution;
   const cycleLength = group.cycle_length;
@@ -75,6 +77,7 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
         contributionStatus: contrib?.status ?? "pending",
         contributionId: contrib?.id,
         contributionAmount: contrib?.amount ?? 0,
+        debt_balance: m.debt_balance ?? 0,
       };
     });
   }, [members, contributions]);
@@ -95,16 +98,18 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
   const avgTrust = memberList.length
     ? Math.round(memberList.reduce((s, m) => s + m.trust_score, 0) / memberList.length)
     : 0;
-  const payoutAmount = expectedAmount * members.length;
+  const paidContributions = contributions.filter((c) => c.status === "paid");
+  const payoutAmount = paidContributions.reduce((s, c) => s + Number(c.amount), 0) || expectedAmount * members.length;
 
   const canGeneratePayout = members.length >= 2 && !group.payout_schedule_generated;
-  const allMembersPaid = memberList.length > 0 && memberList.every((m) => m.contributionStatus === "paid");
+  const atLeastOnePaid = memberList.some((m) => m.contributionStatus === "paid");
+  const allResolved = memberList.length > 0 && memberList.every((m) => m.contributionStatus === "paid" || m.contributionStatus === "missed");
   const currentCycleCompleted = payoutHistoryData.some((r) => r.cycle_month === currentPayoutMonth);
-  const unpaidMembers = memberList.filter((m) => m.contributionStatus !== "paid");
+  const unpaidMembers = memberList.filter((m) => m.contributionStatus === "pending");
   const paidOutUserIds = new Set(payoutHistoryData.map((r) => r.recipient_id));
 
-  const payoutReady = payoutScheduleData.length > 0 && currentEntry && allMembersPaid && !currentCycleCompleted;
-  const showPayoutWarning = payoutScheduleData.length > 0 && currentEntry && !allMembersPaid && !currentCycleCompleted && unpaidMembers.length > 0;
+  const payoutReady = payoutScheduleData.length > 0 && currentEntry && allResolved && atLeastOnePaid && !currentCycleCompleted;
+  const showPayoutWarning = payoutScheduleData.length > 0 && currentEntry && !allResolved && !currentCycleCompleted && unpaidMembers.length > 0;
   const cycleFullyCompleted = payoutScheduleData.length > 0 && !currentEntry && payoutHistoryData.length > 0;
 
   // Payout countdown
@@ -128,15 +133,16 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
 
   const handleCompletePayout = useCallback(() => {
     if (!currentEntry) return;
+    const actualPayoutAmount = paidContributions.reduce((s, c) => s + Number(c.amount), 0);
     completePayout.mutate({
       groupId: group.id,
       recipientId: currentEntry.user_id,
       cycleMonth: currentPayoutMonth,
-      amount: payoutAmount,
+      amount: actualPayoutAmount,
       memberUserIds: members.map((m) => m.user_id),
       nextCycleMonth: currentPayoutMonth + 1,
     });
-  }, [currentEntry, group.id, currentPayoutMonth, payoutAmount, members, completePayout]);
+  }, [currentEntry, group.id, currentPayoutMonth, paidContributions, members, completePayout]);
 
   const handleMarkPaid = useCallback(
     (contributionId: string, amount: number) => {
@@ -157,6 +163,13 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
       addMember.mutate(userId);
     },
     [addMember]
+  );
+
+  const handleUpdateDebt = useCallback(
+    (userId: string, newDebt: number) => {
+      updateDebt.mutate({ groupId: group.id, userId, newDebtBalance: newDebt });
+    },
+    [updateDebt, group.id]
   );
 
   return (
@@ -287,7 +300,7 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
                 <div className="mt-3 space-y-2">
                   <div className="flex items-start gap-1.5 text-xs text-warning font-semibold">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    <span>Pending contributions detected. All members must complete payment before payout.</span>
+                    <span>Pending contributions detected. Mark all members as paid or missed to enable payout.</span>
                   </div>
                   <Button disabled className="w-full gap-2 rounded-xl font-bold shadow-md opacity-50 cursor-not-allowed" size="sm">
                     <CheckCircle2 className="h-4 w-4" />
@@ -413,7 +426,8 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
                   onMarkPaid={handleMarkPaid}
                   onMarkMissed={handleMarkMissed}
                   hasReceivedPayout={paidOutUserIds.has(member.user_id)}
-                  isUnpaid={showPayoutWarning ? member.contributionStatus !== "paid" : false}
+                  isUnpaid={showPayoutWarning ? member.contributionStatus === "pending" : false}
+                  onUpdateDebt={handleUpdateDebt}
                 />
               ))}
             </CardContent>

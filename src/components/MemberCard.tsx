@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Check, XCircle, PlusCircle, Award } from "lucide-react";
+import { Bell, Check, XCircle, PlusCircle, Award, AlertOctagon, MinusCircle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -17,6 +17,7 @@ interface MemberCardMember {
   contributionStatus: string;
   contributionId?: string;
   contributionAmount: number;
+  debt_balance: number;
 }
 
 interface MemberCardProps {
@@ -26,6 +27,7 @@ interface MemberCardProps {
   onToggle: () => void;
   onMarkPaid: (contributionId: string, amount: number) => void;
   onMarkMissed: (contributionId: string) => void;
+  onUpdateDebt?: (userId: string, newDebt: number) => void;
   hasReceivedPayout?: boolean;
   isUnpaid?: boolean;
 }
@@ -51,10 +53,12 @@ const statusStyle: Record<string, string> = {
   missed: "bg-destructive/10 text-destructive",
 };
 
-const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onMarkPaid, onMarkMissed, hasReceivedPayout, isUnpaid }: MemberCardProps) => {
+const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onMarkPaid, onMarkMissed, onUpdateDebt, hasReceivedPayout, isUnpaid }: MemberCardProps) => {
   const [manualAmount, setManualAmount] = useState("");
+  const [debtAdjustment, setDebtAdjustment] = useState("");
   const tier = getTrustTier(member.trust_score);
   const colors = trustColors[tier];
+  const hasDebt = member.debt_balance > 0;
 
   const handleManualPayment = () => {
     const amt = parseFloat(manualAmount);
@@ -62,6 +66,19 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onMarkPaid, 
     onMarkPaid(member.contributionId, amt);
     setManualAmount("");
     toast.success(`Manual payment of ₦${amt.toLocaleString()} recorded for ${member.username}`);
+  };
+
+  const handleDebtAdjust = (mode: "clear" | "reduce") => {
+    if (!onUpdateDebt) return;
+    if (mode === "clear") {
+      onUpdateDebt(member.user_id, 0);
+      setDebtAdjustment("");
+    } else {
+      const amt = parseFloat(debtAdjustment);
+      if (!amt || amt <= 0) return;
+      onUpdateDebt(member.user_id, member.debt_balance - amt);
+      setDebtAdjustment("");
+    }
   };
 
   return (
@@ -79,12 +96,23 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onMarkPaid, 
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold text-foreground truncate">{member.username}</p>
             {hasReceivedPayout && (
               <Badge variant="outline" className="gap-1 border-primary/30 text-primary text-[10px] font-bold shrink-0">
                 <Award className="h-3 w-3" />
                 Received Payout
+              </Badge>
+            )}
+            {member.contributionStatus === "missed" && (
+              <Badge variant="outline" className="gap-1 border-destructive/30 text-destructive text-[10px] font-bold shrink-0">
+                <AlertOctagon className="h-3 w-3" />
+                Missed Payment
+              </Badge>
+            )}
+            {hasDebt && (
+              <Badge variant="outline" className="gap-1 border-destructive/30 text-destructive text-[10px] font-bold shrink-0">
+                ₦{member.debt_balance.toLocaleString()} debt
               </Badge>
             )}
           </div>
@@ -128,6 +156,47 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onMarkPaid, 
                   <span className="font-bold text-foreground">₦{expectedAmount.toLocaleString()}</span>
                 </div>
               </div>
+
+              {/* Outstanding Debt */}
+              {hasDebt && (
+                <div className="space-y-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-destructive uppercase tracking-wider">Outstanding Debt</span>
+                    <span className="text-sm font-extrabold text-destructive">₦{member.debt_balance.toLocaleString()}</span>
+                  </div>
+                  {onUpdateDebt && (
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        placeholder="Reduce amount"
+                        value={debtAdjustment}
+                        onChange={(e) => setDebtAdjustment(e.target.value)}
+                        className="flex-1 rounded-xl text-xs h-8 bg-secondary/50"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 rounded-xl text-xs font-semibold border-destructive/30 text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDebtAdjust("reduce")}
+                        disabled={!debtAdjustment || parseFloat(debtAdjustment) <= 0}
+                      >
+                        <MinusCircle className="h-3.5 w-3.5" />
+                        Reduce
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 rounded-xl text-xs font-semibold border-[hsl(var(--success))]/30 text-[hsl(var(--success))] hover:bg-[hsl(var(--success-light))]"
+                        onClick={() => handleDebtAdjust("clear")}
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        Clear
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Admin Actions */}
               {member.contributionId && member.contributionStatus === "pending" && (

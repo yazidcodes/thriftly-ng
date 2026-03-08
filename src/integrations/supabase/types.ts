@@ -54,6 +54,7 @@ export type Database = {
       }
       group_members: {
         Row: {
+          debt_balance: number
           group_id: string
           id: string
           joined_at: string
@@ -61,6 +62,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          debt_balance?: number
           group_id: string
           id?: string
           joined_at?: string
@@ -68,6 +70,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          debt_balance?: number
           group_id?: string
           id?: string
           joined_at?: string

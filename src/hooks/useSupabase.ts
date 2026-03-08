@@ -21,6 +21,7 @@ export interface GroupMemberRow {
   user_id: string;
   joined_at: string;
   trust_score: number;
+  debt_balance: number;
   profiles?: { username: string; email: string } | null;
 }
 
@@ -205,19 +206,32 @@ export function useUpdateContribution() {
         .single();
       if (!contrib) return;
 
-      // 3. Adjust trust score
+      // 3. Adjust trust score and debt balance
       const delta = status === "paid" ? 2 : -5;
       const { data: member } = await supabase
         .from("group_members")
-        .select("trust_score")
+        .select("trust_score, debt_balance")
         .eq("group_id", contrib.group_id)
         .eq("user_id", contrib.user_id)
         .single();
       if (member) {
         const newScore = Math.max(0, Math.min(100, member.trust_score + delta));
+        const updates: Record<string, unknown> = { trust_score: newScore };
+        // If missed, add expected contribution to debt
+        if (status === "missed") {
+          // Fetch group to get expected amount
+          const { data: group } = await supabase
+            .from("groups")
+            .select("monthly_contribution")
+            .eq("id", contrib.group_id)
+            .single();
+          if (group) {
+            updates.debt_balance = (member.debt_balance || 0) + Number(group.monthly_contribution);
+          }
+        }
         await supabase
           .from("group_members")
-          .update({ trust_score: newScore })
+          .update(updates)
           .eq("group_id", contrib.group_id)
           .eq("user_id", contrib.user_id);
       }
@@ -359,7 +373,7 @@ export function useCompletePayout() {
       memberUserIds: string[];
       nextCycleMonth: number;
     }) => {
-      // 1. Record payout history
+      // 1. Record payout history (amount = sum of paid contributions)
       const { error: histErr } = await supabase.from("payout_history").insert({
         group_id: groupId,
         recipient_id: recipientId,
@@ -462,5 +476,32 @@ export function useSearchProfiles(query: string, excludeIds: string[]) {
       return (data ?? []).filter((p) => !excludeIds.includes(p.user_id));
     },
     enabled: query.trim().length > 0,
+  });
+}
+
+export function useUpdateDebt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      groupId,
+      userId,
+      newDebtBalance,
+    }: {
+      groupId: string;
+      userId: string;
+      newDebtBalance: number;
+    }) => {
+      const { error } = await supabase
+        .from("group_members")
+        .update({ debt_balance: Math.max(0, newDebtBalance) })
+        .eq("group_id", groupId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["group_members"] });
+      toast.success("Debt balance updated!");
+    },
+    onError: (err: Error) => toast.error(err.message),
   });
 }
