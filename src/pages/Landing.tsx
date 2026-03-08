@@ -1,6 +1,7 @@
 import { PieChart, ShieldCheck, Wallet, ArrowRight, Users, ClipboardList, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const Landing = () => {
   const navigate = useNavigate();
