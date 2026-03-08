@@ -131,14 +131,34 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* How it works / Social proof */}
-      <section id="how-it-works" className="bg-accent/40 py-16 sm:py-20">
-        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-          <Smartphone className="mx-auto mb-6 h-10 w-10 text-primary" />
-          <p className="text-xl font-bold leading-relaxed text-foreground sm:text-2xl">
-            "Built for the bustling markets of Northern Nigeria. Empowering unbanked traders to build verifiable financial histories."
-          </p>
-          <p className="mt-4 text-sm text-muted-foreground">From Zaria to Kano, cooperatives are going digital.</p>
+      {/* How it works */}
+      <section id="how-it-works" className="bg-accent/40 py-16 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <h2 className="mb-12 text-center text-3xl font-extrabold text-foreground sm:text-4xl">
+            How Thriftly Works
+          </h2>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { icon: Users, title: "Create Your Group", text: "Start a cooperative savings circle in minutes." },
+              { icon: ClipboardList, title: "Track Contributions", text: "Every member's payment is recorded and visible to the group." },
+              { icon: CalendarClock, title: "Automate Payouts", text: "Payout schedules are generated automatically, no disputes." },
+              { icon: BadgeCheck, title: "Build Trust & History", text: "Members earn a digital trust score, enabling future access to financial services." },
+            ].map((step) => (
+              <div key={step.title} className="rounded-2xl border border-border bg-background p-8 text-center shadow-sm transition hover:shadow-md">
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-accent">
+                  <step.icon className="h-7 w-7 text-primary" />
+                </div>
+                <h3 className="mb-2 text-lg font-bold text-foreground">{step.title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{step.text}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-12 text-center">
+            <p className="mb-6 text-lg text-muted-foreground">Get started today and bring your cooperative savings online.</p>
+            <Button size="lg" className="gap-2 text-base font-bold shadow-lg">
+              Get Started <ArrowRight className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </section>
 
