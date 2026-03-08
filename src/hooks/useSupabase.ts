@@ -206,19 +206,32 @@ export function useUpdateContribution() {
         .single();
       if (!contrib) return;
 
-      // 3. Adjust trust score
+      // 3. Adjust trust score and debt balance
       const delta = status === "paid" ? 2 : -5;
       const { data: member } = await supabase
         .from("group_members")
-        .select("trust_score")
+        .select("trust_score, debt_balance")
         .eq("group_id", contrib.group_id)
         .eq("user_id", contrib.user_id)
         .single();
       if (member) {
         const newScore = Math.max(0, Math.min(100, member.trust_score + delta));
+        const updates: Record<string, unknown> = { trust_score: newScore };
+        // If missed, add expected contribution to debt
+        if (status === "missed") {
+          // Fetch group to get expected amount
+          const { data: group } = await supabase
+            .from("groups")
+            .select("monthly_contribution")
+            .eq("id", contrib.group_id)
+            .single();
+          if (group) {
+            updates.debt_balance = (member.debt_balance || 0) + Number(group.monthly_contribution);
+          }
+        }
         await supabase
           .from("group_members")
-          .update({ trust_score: newScore })
+          .update(updates)
           .eq("group_id", contrib.group_id)
           .eq("user_id", contrib.user_id);
       }
