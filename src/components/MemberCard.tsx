@@ -99,7 +99,7 @@ const MemberCard = ({ member, expectedAmount, isExpanded, onToggle, onUpdate }: 
       onClick={onToggle}
     >
       {/* Collapsed row */}
-      <div className="flex items-center gap-3 p-3">
+      <div className="flex items-center gap-3 p-3 sm:p-4">
         <Avatar className="h-9 w-9">
           <AvatarFallback className="bg-accent text-xs font-bold text-accent-foreground">
             {member.name.slice(0, 2).toUpperCase()}
