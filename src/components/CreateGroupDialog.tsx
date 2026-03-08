@@ -10,20 +10,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface GroupData {
   name: string;
-  schedule: string;
+  contributionAmount: number;
+  cycleLength: number;
+  payoutDay?: number;
   members: string[];
-  contributionAmount?: number;
 }
 
 interface CreateGroupDialogProps {
@@ -34,52 +28,31 @@ interface CreateGroupDialogProps {
 
 const CreateGroupDialog = ({ open, onOpenChange, onCreateGroup }: CreateGroupDialogProps) => {
   const [groupName, setGroupName] = useState("");
-  const [schedule, setSchedule] = useState("");
   const [contributionAmount, setContributionAmount] = useState("");
-  const [memberInput, setMemberInput] = useState("");
-  const [members, setMembers] = useState<string[]>([]);
-
-  const addMember = () => {
-    const trimmed = memberInput.trim();
-    if (trimmed && !members.includes(trimmed)) {
-      setMembers((prev) => [...prev, trimmed]);
-      setMemberInput("");
-    }
-  };
-
-  const removeMember = (member: string) => {
-    setMembers((prev) => prev.filter((m) => m !== member));
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addMember();
-    }
-  };
+  const [cycleLength, setCycleLength] = useState("");
+  const [payoutDay, setPayoutDay] = useState("");
 
   const handleSubmit = () => {
-    if (!groupName.trim() || !schedule) return;
+    if (!groupName.trim() || !contributionAmount || !cycleLength) return;
     onCreateGroup({
       name: groupName.trim(),
-      schedule,
-      members,
       contributionAmount: parseFloat(contributionAmount) || 500,
+      cycleLength: parseInt(cycleLength) || 4,
+      payoutDay: payoutDay ? parseInt(payoutDay) : undefined,
+      members: [],
     });
     setGroupName("");
-    setSchedule("");
     setContributionAmount("");
-    setMembers([]);
-    setMemberInput("");
+    setCycleLength("");
+    setPayoutDay("");
     onOpenChange(false);
   };
 
-  const isValid = groupName.trim().length > 0 && schedule.length > 0;
+  const isValid = groupName.trim().length > 0 && !!contributionAmount && !!cycleLength;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md rounded-2xl border-border/60 p-0 overflow-hidden">
-        {/* Header accent bar */}
         <div className="h-1.5 w-full bg-primary" />
 
         <div className="px-6 pt-4 pb-6 space-y-5">
@@ -88,7 +61,7 @@ const CreateGroupDialog = ({ open, onOpenChange, onCreateGroup }: CreateGroupDia
               Create New Group
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
-              Set up a cooperative savings group and invite members.
+              Set up a cooperative savings group. You'll add members after creation.
             </DialogDescription>
           </DialogHeader>
 
@@ -106,99 +79,56 @@ const CreateGroupDialog = ({ open, onOpenChange, onCreateGroup }: CreateGroupDia
             />
           </div>
 
-          {/* Contribution Schedule */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-foreground">
-              Contribution Schedule
-            </Label>
-            <Select value={schedule} onValueChange={setSchedule}>
-              <SelectTrigger className="rounded-xl border-input bg-secondary/50 focus:ring-primary">
-                <SelectValue placeholder="Select frequency" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Contribution Amount */}
+          {/* Monthly Contribution Amount */}
           <div className="space-y-2">
             <Label htmlFor="contribution-amount" className="text-sm font-semibold text-foreground">
-              Contribution Amount ($)
+              Monthly Contribution Amount (₦)
             </Label>
             <Input
               id="contribution-amount"
               type="number"
-              placeholder="e.g. 500"
+              placeholder="e.g. 25000"
               value={contributionAmount}
               onChange={(e) => setContributionAmount(e.target.value)}
               className="rounded-xl border-input bg-secondary/50 placeholder:text-muted-foreground/60 focus-visible:ring-primary"
             />
           </div>
 
-          {/* Members */}
+          {/* Cycle Length */}
           <div className="space-y-2">
-            <Label className="text-sm font-semibold text-foreground">
-              Add Members
+            <Label htmlFor="cycle-length" className="text-sm font-semibold text-foreground">
+              Contribution Cycle Length (months)
             </Label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Name or email"
-                value={memberInput}
-                onChange={(e) => setMemberInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-1 rounded-xl border-input bg-secondary/50 placeholder:text-muted-foreground/60 focus-visible:ring-primary"
-              />
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={addMember}
-                disabled={!memberInput.trim()}
-                className="shrink-0 rounded-xl border-primary/30 text-primary hover:bg-accent hover:text-accent-foreground"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
+            <Input
+              id="cycle-length"
+              type="number"
+              placeholder="e.g. 4"
+              min={2}
+              value={cycleLength}
+              onChange={(e) => setCycleLength(e.target.value)}
+              className="rounded-xl border-input bg-secondary/50 placeholder:text-muted-foreground/60 focus-visible:ring-primary"
+            />
+            <p className="text-xs text-muted-foreground">
+              The number of months the savings cycle will run.
+            </p>
+          </div>
 
-            {/* Member chips */}
-            <AnimatePresence>
-              {members.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="flex flex-wrap gap-2 pt-1"
-                >
-                  {members.map((member) => (
-                    <motion.span
-                      key={member}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground"
-                    >
-                      {member}
-                      <button
-                        onClick={() => removeMember(member)}
-                        className="ml-0.5 rounded-full p-0.5 hover:bg-primary/10 transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </motion.span>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {members.length === 0 && (
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Users className="h-3.5 w-3.5" />
-                You can also add members later.
-              </p>
-            )}
+          {/* Payout Day (optional) */}
+          <div className="space-y-2">
+            <Label htmlFor="payout-day" className="text-sm font-semibold text-foreground">
+              Payout Day of Month{" "}
+              <span className="font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              id="payout-day"
+              type="number"
+              placeholder="e.g. 15"
+              min={1}
+              max={28}
+              value={payoutDay}
+              onChange={(e) => setPayoutDay(e.target.value)}
+              className="rounded-xl border-input bg-secondary/50 placeholder:text-muted-foreground/60 focus-visible:ring-primary"
+            />
           </div>
 
           {/* Submit */}
