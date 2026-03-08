@@ -14,13 +14,216 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contributions: {
+        Row: {
+          amount: number
+          cycle_month: number
+          group_id: string
+          id: string
+          paid_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          cycle_month: number
+          group_id: string
+          id?: string
+          paid_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          cycle_month?: number
+          group_id?: string
+          id?: string
+          paid_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contributions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          trust_score: number
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          trust_score?: number
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          trust_score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          admin_id: string
+          created_at: string
+          cycle_length: number
+          group_name: string
+          id: string
+          monthly_contribution: number
+          payout_day: number | null
+          payout_schedule_generated: boolean
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          cycle_length: number
+          group_name: string
+          id?: string
+          monthly_contribution: number
+          payout_day?: number | null
+          payout_schedule_generated?: boolean
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          cycle_length?: number
+          group_name?: string
+          id?: string
+          monthly_contribution?: number
+          payout_day?: number | null
+          payout_schedule_generated?: boolean
+        }
+        Relationships: []
+      }
+      payout_history: {
+        Row: {
+          amount: number
+          cycle_month: number
+          group_id: string
+          id: string
+          paid_at: string
+          recipient_id: string
+        }
+        Insert: {
+          amount: number
+          cycle_month: number
+          group_id: string
+          id?: string
+          paid_at?: string
+          recipient_id: string
+        }
+        Update: {
+          amount?: number
+          cycle_month?: number
+          group_id?: string
+          id?: string
+          paid_at?: string
+          recipient_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_history_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payout_schedule: {
+        Row: {
+          group_id: string
+          id: string
+          payout_month: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          payout_month: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          payout_month?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_schedule_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          trust_score: number
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          trust_score?: number
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          trust_score?: number
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_group_admin: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_group_member: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
