@@ -188,7 +188,7 @@ const Landing = () => {
 
       {/* Footer */}
       <footer className="border-t border-border bg-card py-8 text-center text-sm text-muted-foreground">
-        © 2026 Thriftly — A 3MTT NextGen Project.
+        © Thriftly – A Digital Cooperative Savings and Financial Trust Platform
       </footer>
     </div>);
 
