@@ -237,6 +237,10 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      repair_payout_schedule: {
+        Args: { p_group_id: string }
+        Returns: undefined
+      }
       update_contribution_status: {
         Args: { p_amount?: number; p_contribution_id: string; p_status: string }
         Returns: undefined
