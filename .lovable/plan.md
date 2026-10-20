@@ -1,53 +1,18 @@
 
-# Fix Payout Schedule Generation Logic
+# Build Emergency Turn Swap
 
-## Problem Analysis
-The Samaru group shows the bug clearly:
-- `cycle_length`: 5
-- `payout_schedule` entries: only 2 (both completed)
-- After month 2 completes, there's no "current" entry → stuck state
+## User experience
+- Add a two-step Request Swap dialog to a group's member and admin dashboards: enter a reason, then choose an eligible group member.
+- Only offer members with an upcoming payout slot that has not been paid; the database independently validates both users' turns.
+- Show incoming requests as prominent dashboard notifications with Accept and Decline actions.
+- On acceptance, atomically exchange the two upcoming schedule assignees and mark both turns as swapped; show a Swapped badge in each payout timeline.
 
-Current code: `shuffled.slice(0, cycleLength)` only creates entries up to the member count, not the full cycle.
+## Security and implementation
+- Add a payout-swap requests table with participant-only read access and explicit authenticated/service-role grants.
+- Keep request creation and response writes behind security-definer database functions that verify caller identity, group membership, pending status, unpaid upcoming schedule rows, and serialize competing responses.
+- Add client hooks for candidate selection, incoming request queries, mutations, and a realtime subscription with cleanup on unmount.
+- Integrate the dialog into both group dashboard views and a global incoming-request inbox so requests remain visible across navigation.
 
-## Solution
-
-### 1. Fix Client-Side Schedule Generation (`useGeneratePayoutSchedule`)
-Generate entries for the full `cycleLength` using modulo rotation:
-
-```typescript
-// Create entries for full cycle with member rotation
-const entries = Array.from({ length: cycleLength }, (_, i) => ({
-  group_id: groupId,
-  user_id: shuffled[i % shuffled.length].userId,
-  payout_month: i + 1,
-  status: i === 0 ? "current" : "upcoming",
-}));
-```
-
-### 2. Update `complete_payout` RPC
-Add `ON CONFLICT DO NOTHING` for contributions insert (prevent duplicates), and ensure the "promote next to current" step handles the case when the entry exists.
-
-### 3. Add Database Function to Repair Broken Groups
-Create `repair_payout_schedule(p_group_id)` that:
-- Gets the current highest completed payout_month
-- Gets cycle_length and member list
-- Generates missing entries from (last_completed + 1) to cycle_length using modulo rotation
-- Sets the first missing entry as "current"
-
-### 4. Add Unique Constraints (prevents duplicate data)
-- `contributions`: unique on `(group_id, user_id, cycle_month)`
-- `payout_schedule`: unique on `(group_id, payout_month)`
-
-### Files to Change
-| File | Change |
-|------|--------|
-| `src/hooks/useSupabase.ts` | Fix `useGeneratePayoutSchedule` to use modulo rotation |
-| New migration | Add `repair_payout_schedule` function + unique constraints |
-| `src/components/GroupDashboard.tsx` | Add "Repair Schedule" button for stuck groups |
-
-### Edge Cases Handled
-- **members < cycle_length**: Rotates members (A, B, A, B, A for 2 members over 5 months)
-- **members = cycle_length**: Each member gets one payout month
-- **members > cycle_length**: Only first `cycle_length` shuffled members get payouts
-- **Stuck groups**: Repair function regenerates missing entries
+## Validation
+- Verify eligible-member filtering and no-candidate states, authorization and schedule checks in the database functions, request notifications, accept/decline, swapped badges, and realtime listener cleanup.
 
