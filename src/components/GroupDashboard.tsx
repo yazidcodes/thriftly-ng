@@ -20,6 +20,7 @@ import {
   useUpdateContribution,
   useAddMember,
   useUpdateDebt,
+  useSwapRequests,
   type GroupRow,
 } from "@/hooks/useSupabase";
 import MemberCard from "./MemberCard";
@@ -27,6 +28,7 @@ import MemberSearchBar from "./MemberSearchBar";
 import PayoutTimeline, { type PayoutEntry } from "./PayoutTimeline";
 import ConfirmPayoutDialog from "./ConfirmPayoutDialog";
 import PayoutHistory from "./PayoutHistory";
+import SwapSection from "./SwapSection";
 import { getTrustTier, getTrustLabel } from "@/lib/members";
 
 interface GroupDashboardProps {
@@ -51,6 +53,7 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
   const { data: members = [] } = useGroupMembers(group.id);
   const { data: payoutScheduleData = [] } = usePayoutSchedule(group.id);
   const { data: payoutHistoryData = [] } = usePayoutHistory(group.id);
+  const { data: swapRequests = [] } = useSwapRequests(group.id);
   const generatePayout = useGeneratePayoutSchedule();
   const completePayout = useCompletePayout();
   const updateContribution = useUpdateContribution();
@@ -82,14 +85,26 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
     });
   }, [members, contributions]);
 
+  // Users involved in accepted swaps get a "Swapped" badge
+  const swappedUserIds = useMemo(
+    () =>
+      new Set(
+        swapRequests
+          .filter((r) => r.status === "accepted")
+          .flatMap((r) => [r.requester_id, r.target_id])
+      ),
+    [swapRequests]
+  );
+
   // Payout entries for timeline
   const payoutEntries: PayoutEntry[] = useMemo(() => {
     return payoutScheduleData.map((e) => ({
       month: e.payout_month,
       memberName: e.profiles?.username ?? "Unknown",
       status: e.status as "completed" | "current" | "upcoming",
+      swapped: swappedUserIds.has(e.user_id),
     }));
-  }, [payoutScheduleData]);
+  }, [payoutScheduleData, swappedUserIds]);
 
   // Stats
   const totalCollected = contributions
@@ -395,6 +410,11 @@ const GroupDashboard = ({ group }: GroupDashboardProps) => {
           </Card>
         </motion.div>
       )}
+
+      {/* Emergency Turn Swap */}
+      <motion.div variants={fadeUp}>
+        <SwapSection group={group} />
+      </motion.div>
 
       {/* Main grid */}
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">

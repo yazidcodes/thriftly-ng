@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -447,5 +448,150 @@ export function useUpdateDebt() {
       toast.success("Debt balance updated!");
     },
     onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+// ── Emergency Turn Swap ──
+
+export interface SwapRequestRow {
+  id: string;
+  group_id: string;
+  requester_id: string;
+  target_id: string;
+  reason: string;
+  status: "pending" | "accepted" | "declined" | "cancelled";
+  created_at: string;
+  responded_at: string | null;
+}
+
+export function useSwapRequests(groupId: string | undefined) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["swap_requests", groupId, user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("swap_requests")
+        .select("*")
+        .eq("group_id", groupId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as SwapRequestRow[];
+    },
+    enabled: !!groupId && !!user,
+  });
+
+  // Realtime listener — cleaned up on unmount to avoid leaks
+  useEffect(() => {
+    if (!groupId || !user) return;
+    const channel = supabase
+      .channel(`swap_requests_${groupId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "swap_requests",
+          filter: `group_id=eq.${groupId}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ["swap_requests", groupId] });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [groupId, user, qc]);
+
+  return query;
+}
+
+export function useRequestSwap(groupId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ targetId, reason }: { targetId: string; reason: string }) => {
+      const { error } = await supabase.rpc("request_payout_swap", {
+        p_group_id: groupId!,
+        p_target_id: targetId,
+        p_reason: reason,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["swap_requests", groupId] });
+      toast.success("Swap request sent!");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}
+
+export function useRespondSwap(groupId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ requestId, accept }: { requestId: string; accept: boolean }) => {
+      const { error } = await supabase.rpc("respond_payout_swap", {
+        p_request_id: requestId,
+        p_accept: accept,
+      });
+      if (error) throw error;
+    },
+    // Optimistic UI: reflect the response immediately
+    onMutate: async ({ requestId, accept }) => {
+      await qc.cancelQueries({ queryKey: ["swap_requests", groupId] });
+      const prev = qc.getQueriesData({ queryKey: ["swap_requests", groupId] });
+      qc.setQueriesData({ queryKey: ["swap_requests", groupId] }, (old: SwapRequestRow[] | undefined) =>
+        old
+          ? old.map((r) =>
+              r.id === requestId
+                ? { ...r, status: (accept ? "accepted" : "declined") as SwapRequestRow["status"] }
+                : r
+            )
+          : old
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) {
+        for (const [key, data] of context.prev) qc.setQueryData(key, data);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["swap_requests", groupId] });
+      qc.invalidateQueries({ queryKey: ["payout_schedule", groupId] });
+    },
+  });
+}
+
+export function useCancelSwap(groupId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ requestId }: { requestId: string }) => {
+      const { error } = await supabase.rpc("cancel_payout_swap", {
+        p_request_id: requestId,
+      });
+      if (error) throw error;
+    },
+    onMutate: async ({ requestId }) => {
+      await qc.cancelQueries({ queryKey: ["swap_requests", groupId] });
+      const prev = qc.getQueriesData({ queryKey: ["swap_requests", groupId] });
+      qc.setQueriesData({ queryKey: ["swap_requests", groupId] }, (old: SwapRequestRow[] | undefined) =>
+        old
+          ? old.map((r) =>
+              r.id === requestId ? { ...r, status: "cancelled" as SwapRequestRow["status"] } : r
+            )
+          : old
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) {
+        for (const [key, data] of context.prev) qc.setQueryData(key, data);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["swap_requests", groupId] });
+    },
   });
 }
