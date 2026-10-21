@@ -20,6 +20,7 @@ import {
   useUpdateContribution,
   useAddMember,
   useUpdateDebt,
+  useSwapRequests,
   type GroupRow,
 } from "@/hooks/useSupabase";
 import MemberCard from "./MemberCard";
@@ -27,6 +28,7 @@ import MemberSearchBar from "./MemberSearchBar";
 import PayoutTimeline, { type PayoutEntry } from "./PayoutTimeline";
 import ConfirmPayoutDialog from "./ConfirmPayoutDialog";
 import PayoutHistory from "./PayoutHistory";
+import SwapSection from "./SwapSection";
 import { getTrustTier, getTrustLabel } from "@/lib/members";
 
 interface GroupDashboardProps {
