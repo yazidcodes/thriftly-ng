@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, CircleDot } from "lucide-react";
+import { CheckCircle2, Clock, CircleDot, Repeat2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
 
@@ -6,6 +6,7 @@ export interface PayoutEntry {
   month: number;
   memberName: string;
   status: "completed" | "current" | "upcoming";
+  swapped?: boolean;
 }
 
 interface PayoutTimelineProps {
@@ -84,6 +85,12 @@ const PayoutTimeline = ({ entries }: PayoutTimelineProps) => {
                   entry.status === "upcoming" ? "text-muted-foreground" : "text-foreground"
                 }`}>
                   {entry.memberName}
+                  {entry.swapped && (
+                    <span className="ml-1.5 inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 align-middle text-[9px] font-bold text-primary">
+                      <Repeat2 className="h-2.5 w-2.5" />
+                      Swapped
+                    </span>
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">Month {entry.month}</p>
               </div>
