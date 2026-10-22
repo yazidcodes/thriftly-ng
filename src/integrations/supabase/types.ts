@@ -214,11 +214,53 @@ export type Database = {
         }
         Relationships: []
       }
+      swap_requests: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          reason: string
+          requester_id: string
+          responded_at: string | null
+          status: string
+          target_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          reason: string
+          requester_id: string
+          responded_at?: string | null
+          status?: string
+          target_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          reason?: string
+          requester_id?: string
+          responded_at?: string | null
+          status?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swap_requests_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      cancel_payout_swap: { Args: { p_request_id: string }; Returns: undefined }
       complete_payout: {
         Args: {
           p_amount: number
@@ -239,6 +281,14 @@ export type Database = {
       }
       repair_payout_schedule: {
         Args: { p_group_id: string }
+        Returns: undefined
+      }
+      request_payout_swap: {
+        Args: { p_group_id: string; p_reason: string; p_target_id: string }
+        Returns: string
+      }
+      respond_payout_swap: {
+        Args: { p_accept: boolean; p_request_id: string }
         Returns: undefined
       }
       update_contribution_status: {
