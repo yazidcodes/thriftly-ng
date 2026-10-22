@@ -16,10 +16,11 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useGroups, useGroupMembers, useContributions,
-  usePayoutSchedule, usePayoutHistory,
+  usePayoutSchedule, usePayoutHistory, useSwapRequests,
 } from "@/hooks/useSupabase";
 import { getTrustTier, getTrustLabel } from "@/lib/members";
 import PayoutTimeline, { type PayoutEntry } from "@/components/PayoutTimeline";
+import SwapSection from "@/components/SwapSection";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -37,6 +38,17 @@ const GroupDetails = () => {
   const { data: members = [], isLoading: loadingMembers } = useGroupMembers(groupId);
   const { data: payoutScheduleData = [] } = usePayoutSchedule(groupId);
   const { data: payoutHistoryData = [] } = usePayoutHistory(groupId);
+  const { data: swapRequests = [] } = useSwapRequests(groupId);
+
+  const swappedUserIds = useMemo(
+    () =>
+      new Set(
+        swapRequests
+          .filter((r) => r.status === "accepted")
+          .flatMap((r) => [r.requester_id, r.target_id])
+      ),
+    [swapRequests]
+  );
 
   const currentEntry = payoutScheduleData.find((e) => e.status === "current");
   const currentPayoutMonth = currentEntry?.payout_month ?? 1;
@@ -77,8 +89,9 @@ const GroupDetails = () => {
       memberName: e.profiles?.username ?? "Unknown",
       status: e.status as "completed" | "current" | "upcoming",
       isCurrentUser: e.user_id === user?.id,
+      swapped: swappedUserIds.has(e.user_id),
     }));
-  }, [payoutScheduleData, user?.id]);
+  }, [payoutScheduleData, user?.id, swappedUserIds]);
 
   // Current user's position in schedule
   const userScheduleEntry = payoutScheduleData.find((e) => e.user_id === user?.id);
@@ -239,6 +252,11 @@ const GroupDetails = () => {
               />
             </CardContent>
           </Card>
+        </motion.div>
+
+        {/* Emergency Turn Swap */}
+        <motion.div variants={fadeUp}>
+          <SwapSection group={group} />
         </motion.div>
 
         {/* Your Position Banner */}
