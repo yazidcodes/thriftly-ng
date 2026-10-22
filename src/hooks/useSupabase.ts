@@ -464,6 +464,29 @@ export interface SwapRequestRow {
   responded_at: string | null;
 }
 
+// The swap_requests table and swap RPCs land in the generated database types
+// when the swap migration runs; this shim keeps those calls typed against
+// SwapRequestRow in the meantime and needs no change afterwards.
+const swapDb = supabase as unknown as {
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (col: string, val: unknown) => {
+        order: (
+          col: string,
+          opts?: { ascending?: boolean }
+        ) => Promise<{
+          data: SwapRequestRow[] | null;
+          error: { message: string } | null;
+        }>;
+      };
+    };
+  };
+  rpc: (
+    fn: string,
+    args?: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+};
+
 export function useSwapRequests(groupId: string | undefined) {
   const { user } = useAuth();
   const qc = useQueryClient();
