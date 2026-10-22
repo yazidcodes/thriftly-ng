@@ -1,30 +1,8 @@
 import { useEffect } from "react";
-import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-
-const useRealtime = (
-  channelName: string,
-  table: string,
-  filter: string | undefined,
-  queryKey: readonly unknown[],
-  qc: QueryClient,
-) => {
-  useEffect(() => {
-    const config: { event: "INSERT" | "UPDATE" | "DELETE" | "*"; schema: "public"; table: string; filter?: string } = {
-      event: "*",
-      schema: "public",
-      table,
-    };
-    if (filter) config.filter = filter;
-    const channel = supabase
-      .channel(channelName)
-      .on("postgres_changes", config, () => qc.invalidateQueries({ queryKey }))
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [channelName, table, filter, queryKey, qc]);
-};
 
 // ── Types ──
 export interface GroupRow {
@@ -81,11 +59,8 @@ export interface PayoutHistoryRow {
 
 export function useGroups() {
   const { user } = useAuth();
-  const qc = useQueryClient();
-  const queryKey = ["groups", user?.id] as const;
-  useRealtime("groups_realtime", "groups", undefined, queryKey, qc);
   return useQuery({
-    queryKey,
+    queryKey: ["groups", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("groups")
@@ -139,11 +114,8 @@ export function useCreateGroup() {
 }
 
 export function useGroupMembers(groupId: string | undefined) {
-  const qc = useQueryClient();
-  const queryKey = ["group_members", groupId] as const;
-  useRealtime(`gm_realtime_${groupId}`, "group_members", groupId ? `group_id=eq.${groupId}` : undefined, queryKey, qc);
   return useQuery({
-    queryKey,
+    queryKey: ["group_members", groupId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("group_members")
@@ -185,11 +157,8 @@ export function useAddMember(groupId: string | undefined) {
 }
 
 export function useContributions(groupId: string | undefined, cycleMonth?: number) {
-  const qc = useQueryClient();
-  const queryKey = ["contributions", groupId, cycleMonth] as const;
-  useRealtime(`contrib_realtime_${groupId}`, "contributions", groupId ? `group_id=eq.${groupId}` : undefined, queryKey, qc);
   return useQuery({
-    queryKey,
+    queryKey: ["contributions", groupId, cycleMonth],
     queryFn: async () => {
       let query = supabase
         .from("contributions")
@@ -295,11 +264,8 @@ export function useCreateContributionsForCycle() {
 }
 
 export function usePayoutSchedule(groupId: string | undefined) {
-  const qc = useQueryClient();
-  const queryKey = ["payout_schedule", groupId] as const;
-  useRealtime(`ps_realtime_${groupId}`, "payout_schedule", groupId ? `group_id=eq.${groupId}` : undefined, queryKey, qc);
   return useQuery({
-    queryKey,
+    queryKey: ["payout_schedule", groupId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payout_schedule")
@@ -418,11 +384,8 @@ export function useCompletePayout() {
 }
 
 export function usePayoutHistory(groupId: string | undefined) {
-  const qc = useQueryClient();
-  const queryKey = ["payout_history", groupId] as const;
-  useRealtime(`ph_realtime_${groupId}`, "payout_history", groupId ? `group_id=eq.${groupId}` : undefined, queryKey, qc);
   return useQuery({
-    queryKey,
+    queryKey: ["payout_history", groupId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payout_history")
@@ -501,6 +464,29 @@ export interface SwapRequestRow {
   responded_at: string | null;
 }
 
+// The swap_requests table and swap RPCs land in the generated database types
+// when the swap migration runs; this shim keeps those calls typed against
+// SwapRequestRow in the meantime and needs no change afterwards.
+const swapDb = supabase as unknown as {
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (col: string, val: unknown) => {
+        order: (
+          col: string,
+          opts?: { ascending?: boolean }
+        ) => Promise<{
+          data: SwapRequestRow[] | null;
+          error: { message: string } | null;
+        }>;
+      };
+    };
+  };
+  rpc: (
+    fn: string,
+    args?: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+};
+
 export function useSwapRequests(groupId: string | undefined) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -508,7 +494,7 @@ export function useSwapRequests(groupId: string | undefined) {
   const query = useQuery({
     queryKey: ["swap_requests", groupId, user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await swapDb
         .from("swap_requests")
         .select("*")
         .eq("group_id", groupId!)
@@ -549,7 +535,7 @@ export function useRequestSwap(groupId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ targetId, reason }: { targetId: string; reason: string }) => {
-      const { error } = await supabase.rpc("request_payout_swap", {
+      const { error } = await swapDb.rpc("request_payout_swap", {
         p_group_id: groupId!,
         p_target_id: targetId,
         p_reason: reason,
@@ -568,7 +554,7 @@ export function useRespondSwap(groupId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ requestId, accept }: { requestId: string; accept: boolean }) => {
-      const { error } = await supabase.rpc("respond_payout_swap", {
+      const { error } = await swapDb.rpc("respond_payout_swap", {
         p_request_id: requestId,
         p_accept: accept,
       });
@@ -605,7 +591,7 @@ export function useCancelSwap(groupId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ requestId }: { requestId: string }) => {
-      const { error } = await supabase.rpc("cancel_payout_swap", {
+      const { error } = await swapDb.rpc("cancel_payout_swap", {
         p_request_id: requestId,
       });
       if (error) throw error;
