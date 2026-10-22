@@ -494,7 +494,7 @@ export function useSwapRequests(groupId: string | undefined) {
   const query = useQuery({
     queryKey: ["swap_requests", groupId, user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await swapDb
         .from("swap_requests")
         .select("*")
         .eq("group_id", groupId!)
