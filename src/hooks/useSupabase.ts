@@ -512,7 +512,7 @@ export function useRequestSwap(groupId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ targetId, reason }: { targetId: string; reason: string }) => {
-      const { error } = await supabase.rpc("request_payout_swap", {
+      const { error } = await swapDb.rpc("request_payout_swap", {
         p_group_id: groupId!,
         p_target_id: targetId,
         p_reason: reason,
@@ -531,7 +531,7 @@ export function useRespondSwap(groupId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ requestId, accept }: { requestId: string; accept: boolean }) => {
-      const { error } = await supabase.rpc("respond_payout_swap", {
+      const { error } = await swapDb.rpc("respond_payout_swap", {
         p_request_id: requestId,
         p_accept: accept,
       });
@@ -568,7 +568,7 @@ export function useCancelSwap(groupId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ requestId }: { requestId: string }) => {
-      const { error } = await supabase.rpc("cancel_payout_swap", {
+      const { error } = await swapDb.rpc("cancel_payout_swap", {
         p_request_id: requestId,
       });
       if (error) throw error;
