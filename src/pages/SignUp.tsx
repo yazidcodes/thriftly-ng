@@ -35,8 +35,8 @@ const SignUp = () => {
       return;
     }
 
-    toast.success("Account created! Check your email to confirm, or sign in directly.");
-    navigate("/signin");
+    toast.success("Account created! Welcome to Thriftly.");
+    navigate("/dashboard");
     setLoading(false);
   };
 
