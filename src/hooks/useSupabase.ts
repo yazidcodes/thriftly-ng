@@ -19,7 +19,7 @@ const useRealtime = (
     };
     if (filter) config.filter = filter;
     const channel = supabase
-      .channel(channelName)
+      .channel(`${channelName}_${Math.random().toString(36).slice(2, 8)}`)
       .on("postgres_changes", config, () => qc.invalidateQueries({ queryKey }))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
