@@ -546,7 +546,7 @@ export function useSwapRequests(groupId: string | undefined) {
   useEffect(() => {
     if (!groupId || !user) return;
     const channel = supabase
-      .channel(`swap_requests_${groupId}`)
+      .channel(`swap_requests_${groupId}_${Math.random().toString(36).slice(2, 8)}`)
       .on(
         "postgres_changes",
         {
